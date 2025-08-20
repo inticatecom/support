@@ -3,11 +3,13 @@ import { Server } from "socket.io";
 import { createServer, RequestListener } from "http";
 import { debug } from "./lib/Debug";
 import { CorsOptions } from "cors";
+import { client } from ".";
 
 declare module "http" {
   interface IncomingMessage {
     session?: import("express-session").Session &
-      Partial<import("express-session").SessionData>;
+      Partial<import("express-session").SessionData> &
+      Record<string, unknown>;
   }
 }
 
@@ -27,23 +29,54 @@ export default function Socket(app: RequestListener, cors: CorsOptions) {
     }
 
     await socket.join(session.id); // Create and join a room by the user's unique session identifier.
+    const messages = await getRecent();
 
-    debug.success(
-      `A user with the ID '${socket.id}' has connected to the socket.`
-    );
+    debug.success(`Session '${session.id}' has connected to socket.`);
 
     // Fixed chat template to test emitting functionality.
-    for (let i = 0; i < 10; i++) {
-      socket.emit(
-        "message:create",
-        `This is test message from socket #${String(i + 1)}.`
-      );
-    }
+    messages.forEach((message) => {
+      socket.emit("message:receive", message);
+    });
+    // for (let i = 0; i < 10; i++) {
+    //   socket.emit("message:receive", {
+    //     author: "test",
+    //     content: `This is test message from socket #${String(i + 1)}.`,
+    //     time: new Date(),
+    //   });
+    // }
+
+    socket.on("message:create", async (message: string) => {
+      const msg = {
+        author: socket.id,
+        content: message,
+        time: new Date(),
+      };
+
+      await client.rPush(`chat:${session.id}:messages`, JSON.stringify(msg));
+      socket.emit("message:receive", msg);
+      console.log(msg);
+    });
 
     socket.on("disconnect", async () => {
       await socket.leave(session.id); // Leave the room when the user signals to disconnect from the socket.
-      debug.error(`User '${socket.id} has disconnected from the socket.`);
+      debug.error(`Session '${session.id}' has disconnected from the socket.`);
     });
+
+    async function getRecent(): Promise<
+      { author: string; content: string; time: Date }[]
+    > {
+      if (!session) return [];
+
+      const data = await client.lRange(`chat:${session.id}:messages`, -100, -1);
+      return data.map((val) => {
+        const json = JSON.parse(val);
+        return {
+          author: json.author,
+          content: json.content,
+          time: new Date(json.time),
+        };
+      });
+    }
   });
 
   return { io, server };

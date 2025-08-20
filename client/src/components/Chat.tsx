@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState, type SetStateAction } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import moment from "moment";
-import { io } from "socket.io-client";
+import { io, Socket } from "socket.io-client";
 
 // Interfaces
 interface ChatProps {
@@ -37,6 +37,9 @@ interface WindowProps {
   setNotice: React.Dispatch<SetStateAction<boolean>>;
   /** Whether or not the window is currently in a loading state. */
   loading?: boolean;
+  send: (e: React.FormEvent<HTMLFormElement>) => void;
+  sending: boolean;
+  messages: Message[];
 }
 interface FormProps {
   /** Whether or not the send form is visible. */
@@ -45,6 +48,14 @@ interface FormProps {
   showNotice: boolean;
   /** The function that allows the notice form state to be modified. */
   setNotice: React.Dispatch<SetStateAction<boolean>>;
+  send: (e: React.FormEvent<HTMLFormElement>) => void;
+  sending: boolean;
+}
+interface Message {
+  author: string;
+  content: string;
+  time: Date;
+  local?: boolean;
 }
 
 // Icons
@@ -81,31 +92,48 @@ function setValue(key: string, value: unknown): void {
 /**
  * The base chat window.
  */
-export default function Chat({ auth }: ChatProps) {
+export default function Chat() {
   // States
   const [open, setOpen] = useState<boolean>(getValue("live-chat-open", false));
   const [loading, setLoading] = useState<boolean>(true);
   const [notice, setNotice] = useState<boolean>(
     getValue("live-chat-notice-open", true)
   );
-  const [messages, setMessages] = useState<string[]>([]);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [sending, setSending] = useState<boolean>(false);
+  const [socket, setSocket] = useState<Socket | undefined>(undefined);
 
   // Hooks
   useEffect(() => {
-    const socket = io("http://localhost:3000", { withCredentials: true });
-    console.log(auth);
-
-    socket.on("message:create", (message: string) => {
-      setMessages((prev) => [message, ...prev]);
+    const socket = io("http://localhost:3000", {
+      withCredentials: true,
     });
 
+    socket.on("connect", () => {
+      socket.on("message:receive", (message: Message) => {
+        setMessages((prev) => {
+          const messageWithDate = {
+            ...message,
+            time: new Date(message.time),
+            local: message.author === socket.id,
+          };
+
+          const newMessages = [...prev, messageWithDate];
+          return newMessages.sort(
+            (a, b) => a.time.getTime() - b.time.getTime()
+          );
+        });
+      });
+    });
+
+    setSocket(socket);
     return () => {
       socket.disconnect();
     };
-  }, [auth]);
+  }, []);
 
   // References
-  const timer = useRef<number>(null);
+  const timer = useRef<NodeJS.Timeout>(null);
 
   // Hooks
   useEffect(() => {
@@ -121,9 +149,21 @@ export default function Chat({ auth }: ChatProps) {
     timer.current = setTimeout(() => setLoading(false), 500);
   }, [open]);
 
+  function sendMsg(e: React.FormEvent<HTMLFormElement>): void {
+    e.preventDefault();
+
+    if (!socket) return;
+
+    setSending(true);
+
+    const data = new FormData(e.currentTarget);
+    socket.emit("message:create", data.get("message"));
+    e.currentTarget.reset();
+    setSending(false);
+  }
+
   return (
     <>
-      {messages}
       {open && (
         <Window
           open={open}
@@ -131,6 +171,9 @@ export default function Chat({ auth }: ChatProps) {
           showNotice={notice}
           setNotice={setNotice}
           loading={loading}
+          send={sendMsg}
+          sending={sending}
+          messages={messages}
         />
       )}
       <button
@@ -186,6 +229,9 @@ function Window({
   showNotice,
   setNotice,
   loading,
+  send,
+  sending,
+  messages,
 }: WindowProps) {
   return (
     <motion.div
@@ -221,24 +267,14 @@ function Window({
             <p className="text-white/50 self-center text-center text-sm">
               Chat started at 5:00PM
             </p>
-            <Bubble
-              author="Inticate Bot"
-              message="Welcome to the chat! How can we assist you today?"
-              time={new Date()}
-            />
-            <Bubble
-              mode="secondary"
-              author="Lucas"
-              message="This is a local message, a message sent by myself. The color varies to provide a visual representation of this effect."
-              time={new Date()}
-            />
-            {Array.from({ length: 5 }).map((_, index) => (
+            {messages.map((message, index) => (
               <Bubble
                 key={index}
-                author={`Author ${index}`}
-                message={`This is a template message with an ID of ${index}. This is not a real message!`}
-                time={new Date()}
-                last={index === 4}
+                author={message.author}
+                message={message.content}
+                time={message.time}
+                last={index === messages.length - 1}
+                mode={message.local ? "secondary" : "primary"}
               />
             ))}
           </div>
@@ -253,6 +289,8 @@ function Window({
         active={loading ? false : true}
         showNotice={showNotice}
         setNotice={setNotice}
+        send={send}
+        sending={sending}
       />
     </motion.div>
   );
@@ -266,7 +304,7 @@ function Bubble({ mode, author, message, time, last }: BubbleProps) {
     <div
       className={`flex flex-col w-11/12 ${mode === "secondary" && "self-end"}`}>
       <p
-        className={`text-white p-4 rounded-lg ${
+        className={`text-white p-4 rounded-lg w-full hyphens-auto break-all ${
           !mode || mode === "primary"
             ? "bg-white/10"
             : "bg-blue-500/10 self-end"
@@ -288,16 +326,9 @@ function Bubble({ mode, author, message, time, last }: BubbleProps) {
 /**
  * The form that allows users to submit a message to the chat.
  */
-function Form({ active, showNotice, setNotice }: FormProps) {
+function Form({ active, showNotice, setNotice, send, sending }: FormProps) {
   // States
   const [sendable, setSendable] = useState<boolean>(false);
-  const [sending, setSending] = useState<boolean>(false);
-
-  function send(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-
-    setSending(true);
-  }
 
   return (
     <form
@@ -308,6 +339,7 @@ function Form({ active, showNotice, setNotice }: FormProps) {
           className="outline-none w-full disabled:cursor-not-allowed"
           placeholder="Ask a question ..."
           disabled={sending && sendable}
+          name="message"
           onChange={(e) => {
             if (e.target.value.length >= 3) {
               setSendable(true);
