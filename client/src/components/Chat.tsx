@@ -26,6 +26,26 @@ interface BubbleProps {
   /** Whether or not the message is the most recent one in the list. */
   last?: boolean;
 }
+interface WindowProps {
+  /** Whether or not the window is currently in it's visible state. */
+  open: boolean;
+  /** The function that allows the visible state to be modified. */
+  setOpen: React.Dispatch<SetStateAction<boolean>>;
+  /** Whether or not the terms and privacy policy notice should be displayed. */
+  showNotice: boolean;
+  /** The function that allows the notice state to be modified. */
+  setNotice: React.Dispatch<SetStateAction<boolean>>;
+  /** Whether or not the window is currently in a loading state. */
+  loading?: boolean;
+}
+interface FormProps {
+  /** Whether or not the send form is visible. */
+  active: boolean;
+  /** Whether or not the notice should be displayed below the form. */
+  showNotice: boolean;
+  /** The function that allows the notice form state to be modified. */
+  setNotice: React.Dispatch<SetStateAction<boolean>>;
+}
 
 // Icons
 import { IoChatbox, IoClose, IoSend } from "react-icons/io5";
@@ -63,10 +83,13 @@ function setValue(key: string, value: unknown): void {
  */
 export default function Chat({ auth }: ChatProps) {
   // States
-  const [open, setOpen] = useState<boolean>(getValue("live-chat-open"));
+  const [open, setOpen] = useState<boolean>(getValue("live-chat-open", false));
   const [loading, setLoading] = useState<boolean>(true);
+  const [notice, setNotice] = useState<boolean>(
+    getValue("live-chat-notice-open", true)
+  );
 
-  // Variables
+  // Hooks
   useEffect(() => {
     const socket = io("http://localhost:3000");
     console.log(auth);
@@ -95,7 +118,15 @@ export default function Chat({ auth }: ChatProps) {
 
   return (
     <>
-      {open && <Window open={open} setOpen={setOpen} loading={loading} />}
+      {open && (
+        <Window
+          open={open}
+          setOpen={setOpen}
+          showNotice={notice}
+          setNotice={setNotice}
+          loading={loading}
+        />
+      )}
       <button
         onClick={() => {
           setOpen(!open);
@@ -146,12 +177,10 @@ export default function Chat({ auth }: ChatProps) {
 function Window({
   open,
   setOpen,
+  showNotice,
+  setNotice,
   loading,
-}: {
-  open: boolean;
-  setOpen: React.Dispatch<SetStateAction<boolean>>;
-  loading?: boolean;
-}) {
+}: WindowProps) {
   return (
     <motion.div
       initial={{ scale: 0 }}
@@ -214,7 +243,11 @@ function Window({
         </div>
       )}
 
-      <Form active={loading ? false : true} />
+      <Form
+        active={loading ? false : true}
+        showNotice={showNotice}
+        setNotice={setNotice}
+      />
     </motion.div>
   );
 }
@@ -249,13 +282,10 @@ function Bubble({ mode, author, message, time, last }: BubbleProps) {
 /**
  * The form that allows users to submit a message to the chat.
  */
-function Form({ active }: { active: boolean }) {
+function Form({ active, showNotice, setNotice }: FormProps) {
   // States
   const [sendable, setSendable] = useState<boolean>(false);
   const [sending, setSending] = useState<boolean>(false);
-  const [notice, setNotice] = useState<boolean>(
-    getValue("live-chat-notice-open", true)
-  );
 
   function send(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -291,7 +321,7 @@ function Form({ active }: { active: boolean }) {
           )}
         </button>
       </div>
-      {notice && (
+      {showNotice && (
         <div className="flex justify-center items-center gap-2 bg-white/10 rounded-xl p-3 mt-2">
           <p className="text-white/50 text-sm">
             By continuing to use our services, you agree to our terms of privacy
