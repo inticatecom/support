@@ -5,15 +5,15 @@ import moment from "moment";
 import { io, Socket } from "socket.io-client";
 
 // Interfaces
-interface ChatProps {
-  /** Your API key that allows the component to interact with the API. */
-  auth: string;
-  /** Any additional options to attach to the chat component. */
-  options?: {
-    /** Whether or not the chat is in debug mode. */
-    debug?: boolean;
-  };
-}
+// interface ChatProps {
+//   /** Your API key that allows the component to interact with the API. */
+//   auth: string;
+//   /** Any additional options to attach to the chat component. */
+//   options?: {
+//     /** Whether or not the chat is in debug mode. */
+//     debug?: boolean;
+//   };
+// }
 interface BubbleProps {
   /** The color scheme of the chat bubble. */
   mode?: "primary" | "secondary";
@@ -103,6 +103,9 @@ export default function Chat() {
   const [sending, setSending] = useState<boolean>(false);
   const [socket, setSocket] = useState<Socket | undefined>(undefined);
 
+  // References
+  const timer = useRef<NodeJS.Timeout>(null);
+
   // Hooks
   useEffect(() => {
     const socket = io("http://localhost:3000", {
@@ -132,10 +135,6 @@ export default function Chat() {
     };
   }, []);
 
-  // References
-  const timer = useRef<NodeJS.Timeout>(null);
-
-  // Hooks
   useEffect(() => {
     if (!open) {
       if (timer.current) {
@@ -149,11 +148,14 @@ export default function Chat() {
     timer.current = setTimeout(() => setLoading(false), 500);
   }, [open]);
 
+  /**
+   * Triggers when the user submits a message to the chat's form.
+   * @param e The form event.
+   */
   function sendMsg(e: React.FormEvent<HTMLFormElement>): void {
     e.preventDefault();
 
     if (!socket) return;
-
     setSending(true);
 
     const data = new FormData(e.currentTarget);

@@ -5,6 +5,13 @@ import { debug } from "./lib/Debug";
 import { CorsOptions } from "cors";
 import { client } from ".";
 
+// Interfaces
+interface StoredMessage {
+  author: string;
+  content: string;
+  time: string;
+}
+
 declare module "http" {
   interface IncomingMessage {
     session?: import("express-session").Session &
@@ -33,17 +40,10 @@ export default function Socket(app: RequestListener, cors: CorsOptions) {
 
     debug.success(`Session '${session.id}' has connected to socket.`);
 
-    // Fixed chat template to test emitting functionality.
+    // Send recent messages.
     messages.forEach((message) => {
       socket.emit("message:receive", message);
     });
-    // for (let i = 0; i < 10; i++) {
-    //   socket.emit("message:receive", {
-    //     author: "test",
-    //     content: `This is test message from socket #${String(i + 1)}.`,
-    //     time: new Date(),
-    //   });
-    // }
 
     socket.on("message:create", async (message: string) => {
       const msg = {
@@ -69,7 +69,7 @@ export default function Socket(app: RequestListener, cors: CorsOptions) {
 
       const data = await client.lRange(`chat:${session.id}:messages`, -100, -1);
       return data.map((val) => {
-        const json = JSON.parse(val);
+        const json = JSON.parse(val) as StoredMessage;
         return {
           author: json.author,
           content: json.content,

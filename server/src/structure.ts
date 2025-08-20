@@ -7,6 +7,10 @@ export default async function Structure() {
   await createSchema(
     "idx:users",
     {
+      "$.id": {
+        type: SCHEMA_FIELD_TYPE.TEXT,
+        AS: "id",
+      },
       "$.name": {
         type: SCHEMA_FIELD_TYPE.TEXT,
         AS: "name",
