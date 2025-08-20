@@ -304,7 +304,7 @@ function Bubble({ mode, author, message, time, last }: BubbleProps) {
     <div
       className={`flex flex-col w-11/12 ${mode === "secondary" && "self-end"}`}>
       <p
-        className={`text-white p-4 rounded-lg w-full hyphens-auto break-all ${
+        className={`text-white p-4 rounded-lg w-full hyphens-auto break-words ${
           !mode || mode === "primary"
             ? "bg-white/10"
             : "bg-blue-500/10 self-end"
