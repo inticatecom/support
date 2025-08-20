@@ -88,11 +88,16 @@ export default function Chat({ auth }: ChatProps) {
   const [notice, setNotice] = useState<boolean>(
     getValue("live-chat-notice-open", true)
   );
+  const [messages, setMessages] = useState<string[]>([]);
 
   // Hooks
   useEffect(() => {
-    const socket = io("http://localhost:3000");
+    const socket = io("http://localhost:3000", { withCredentials: true });
     console.log(auth);
+
+    socket.on("message:create", (message: string) => {
+      setMessages((prev) => [message, ...prev]);
+    });
 
     return () => {
       socket.disconnect();
@@ -118,6 +123,7 @@ export default function Chat({ auth }: ChatProps) {
 
   return (
     <>
+      {messages}
       {open && (
         <Window
           open={open}

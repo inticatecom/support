@@ -6,6 +6,8 @@ import { createClient } from "redis";
 import dotenv from "dotenv";
 import socket from "./socket";
 import { debug } from "./lib/Debug";
+import cookieParser from "cookie-parser";
+import cors from "cors";
 
 // Routers
 import chat from "./routes/chat";
@@ -27,17 +29,32 @@ await (async () => {
   await structure();
   debug.info("Constructed schema and pushed to Redis instance.");
 
-  app.use(
-    session({
-      store: new RedisStore({ client }),
-      secret: String(process.env.SECRET),
-      resave: false,
-      saveUninitialized: false,
-    })
-  );
+  const middleware = session({
+    store: new RedisStore({ client }),
+    secret: String(process.env.SECRET),
+    resave: false,
+    saveUninitialized: true, // TODO: Change in future, used to test functionality of session cookie.
+    cookie: {
+      secure: false, // TODO: Change in production.
+      sameSite: false,
+      maxAge: 24 * 60 * 60 * 1000,
+      httpOnly: true,
+    },
+  });
+
+  const corsOptions = {
+    origin: ["http://localhost:5173"],
+    methods: ["GET", "POST", "PUT", "PATCH"],
+    credentials: true,
+  };
+
+  app.use(middleware, cors(corsOptions));
+  app.use(cookieParser());
   app.use("/chats", chat);
 
-  const { server } = socket(app);
+  const { io, server } = socket(app, corsOptions);
+
+  io.engine.use(middleware);
   server.listen(process.env.PORT, () => {
     debug.success(
       `Started HTTP instances on port ${String(process.env.PORT)}.`
