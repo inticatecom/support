@@ -2,11 +2,12 @@
 import { useEffect, useRef, useState, type SetStateAction } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import moment from "moment";
+import { io } from "socket.io-client";
 
 // Interfaces
 interface ChatProps {
   /** Your API key that allows the component to interact with the API. */
-  key: string;
+  auth: string;
   /** Any additional options to attach to the chat component. */
   options?: {
     /** Whether or not the chat is in debug mode. */
@@ -60,12 +61,20 @@ function setValue(key: string, value: unknown): void {
 /**
  * The base chat window.
  */
-export default function Chat({ key }: ChatProps) {
+export default function Chat({ auth }: ChatProps) {
   // States
   const [open, setOpen] = useState<boolean>(getValue("live-chat-open"));
   const [loading, setLoading] = useState<boolean>(true);
 
-  console.log(key);
+  // Variables
+  useEffect(() => {
+    const socket = io("http://localhost:3000");
+    console.log(auth);
+
+    return () => {
+      socket.disconnect();
+    };
+  }, [auth]);
 
   // References
   const timer = useRef<number>(null);
@@ -215,7 +224,8 @@ function Window({
  */
 function Bubble({ mode, author, message, time, last }: BubbleProps) {
   return (
-    <div className={`flex flex-col`}>
+    <div
+      className={`flex flex-col w-11/12 ${mode === "secondary" && "self-end"}`}>
       <p
         className={`text-white p-4 rounded-lg ${
           !mode || mode === "primary"
