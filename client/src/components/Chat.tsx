@@ -1,8 +1,11 @@
 // Resources
-import { useEffect, useRef, useState, type SetStateAction } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import moment from "moment";
 import { io, Socket } from "socket.io-client";
+
+// Hooks
+import { useEffect, useState, type SetStateAction } from "react";
+import useSound from "use-sound";
 
 // Interfaces
 // interface ChatProps {
@@ -56,7 +59,12 @@ interface Message {
   content: string;
   time: Date;
   local?: boolean;
+  initial?: boolean;
 }
+
+// Sounds
+import SendSound from "../assets/sounds/send.mp3?url";
+import ReceiveSound from "../assets/sounds/receive.mp3?url";
 
 // Icons
 import { IoChatbox, IoClose, IoSend } from "react-icons/io5";
@@ -104,12 +112,13 @@ export default function Chat() {
   const [socket, setSocket] = useState<Socket | undefined>(undefined);
   const [sessionId, setSessionId] = useState<string | null>(null);
 
-  // References
-  const timer = useRef<NodeJS.Timeout>(null);
-
   // Hooks
+  const [playSend] = useSound(SendSound, { volume: 1 });
+  const [playReceive] = useSound(ReceiveSound, { volume: 1 });
+
   useEffect(() => {
     (async () => {
+      setLoading(true);
       const data = await (
         await fetch("http://localhost:3000/session", {
           credentials: "include",
@@ -120,11 +129,17 @@ export default function Chat() {
   }, []);
 
   useEffect(() => {
+    if (!sessionId) return;
+
     const socket = io("http://localhost:3000", {
       withCredentials: true,
     });
 
     socket.on("connect", () => {
+      socket.on("server:started", (time: string) => {
+        console.log(new Date(time));
+      });
+
       socket.on("message:receive", (message: Message) => {
         setMessages((prev) => {
           const messageWithDate = {
@@ -138,27 +153,18 @@ export default function Chat() {
             (a, b) => a.time.getTime() - b.time.getTime()
           );
         });
+
+        if (!message.initial && message.author !== sessionId) playReceive();
       });
+
+      setLoading(false);
     });
 
     setSocket(socket);
     return () => {
       socket.disconnect();
     };
-  }, [sessionId]);
-
-  useEffect(() => {
-    if (!open) {
-      if (timer.current) {
-        clearTimeout(timer.current);
-      }
-
-      setLoading(true);
-      return;
-    }
-
-    timer.current = setTimeout(() => setLoading(false), 500);
-  }, [open]);
+  }, [sessionId, playReceive]);
 
   /**
    * Triggers when the user submits a message to the chat's form.
@@ -173,6 +179,7 @@ export default function Chat() {
     const data = new FormData(e.currentTarget);
     socket.emit("message:create", data.get("message"));
     e.currentTarget.reset();
+    playSend();
     setSending(false);
   }
 
@@ -318,7 +325,7 @@ function Bubble({ mode, author, message, time, last }: BubbleProps) {
     <div
       className={`flex flex-col w-11/12 ${mode === "secondary" && "self-end"}`}>
       <p
-        className={`text-white p-4 rounded-lg w-full hyphens-auto break-words ${
+        className={`text-white p-3 rounded-lg w-full hyphens-auto break-words ${
           !mode || mode === "primary"
             ? "bg-white/10"
             : "bg-blue-500/10 self-end"
@@ -351,6 +358,7 @@ function Form({ active, showNotice, setNotice, send, sending }: FormProps) {
       <div className="rounded-xl bg-white/10 text-white p-3 w-full outline-offset-[2.7px] outline-white/30 ring-white/30 focus-within:outline-[2.5] flex justify-between items-center gap-4 has-[:disabled]:text-white/50">
         <input
           className="outline-none w-full disabled:cursor-not-allowed"
+          type="text"
           placeholder="Ask a question ..."
           disabled={sending && sendable}
           name="message"

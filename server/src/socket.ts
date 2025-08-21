@@ -11,6 +11,10 @@ interface StoredMessage {
   content: string;
   time: string;
 }
+interface SessionInfo {
+  state: boolean;
+  time: string;
+}
 
 declare module "http" {
   interface IncomingMessage {
@@ -47,14 +51,19 @@ export default function Socket(app: RequestListener, cors: CorsOptions) {
         time: new Date(),
       })
     );
+    const ticket = JSON.parse(String(data)) as SessionInfo;
 
     const messages = await getRecent();
 
     debug.success(`Session '${session.id}' has connected to socket.`);
 
     // Send recent messages.
+    socket.emit("server:started", ticket.time);
     messages.forEach((message) => {
-      socket.emit("message:receive", message);
+      socket.emit("message:receive", {
+        initial: true,
+        ...message,
+      });
     });
 
     socket.on("message:create", async (message: string) => {
