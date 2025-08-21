@@ -30,7 +30,7 @@ await (async () => {
   debug.info("Constructed schema and pushed to Redis instance.");
 
   const middleware = session({
-    store: new RedisStore({ client }),
+    store: new RedisStore({ client, prefix: "session:" }),
     secret: String(process.env.SECRET),
     resave: false,
     saveUninitialized: true, // TODO: Change in future, used to test functionality of session cookie.
@@ -51,6 +51,12 @@ await (async () => {
   app.use(middleware, cors(corsOptions));
   app.use(cookieParser());
   app.use("/chats", chat);
+
+  app.get("/session", (req, res) => {
+    if (!req.session) return res.status(404).send("No active session.");
+
+    return res.send(req.session.id);
+  });
 
   const { io, server } = socket(app, corsOptions);
 

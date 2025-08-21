@@ -102,11 +102,23 @@ export default function Chat() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [sending, setSending] = useState<boolean>(false);
   const [socket, setSocket] = useState<Socket | undefined>(undefined);
+  const [sessionId, setSessionId] = useState<string | null>(null);
 
   // References
   const timer = useRef<NodeJS.Timeout>(null);
 
   // Hooks
+  useEffect(() => {
+    (async () => {
+      const data = await (
+        await fetch("http://localhost:3000/session", {
+          credentials: "include",
+        })
+      ).text();
+      setSessionId(data || "");
+    })();
+  }, []);
+
   useEffect(() => {
     const socket = io("http://localhost:3000", {
       withCredentials: true,
@@ -118,7 +130,7 @@ export default function Chat() {
           const messageWithDate = {
             ...message,
             time: new Date(message.time),
-            local: message.author === socket.id,
+            local: message.author === sessionId,
           };
 
           const newMessages = [...prev, messageWithDate];
@@ -133,7 +145,7 @@ export default function Chat() {
     return () => {
       socket.disconnect();
     };
-  }, []);
+  }, [sessionId]);
 
   useEffect(() => {
     if (!open) {

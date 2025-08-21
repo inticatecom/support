@@ -36,6 +36,18 @@ export default function Socket(app: RequestListener, cors: CorsOptions) {
     }
 
     await socket.join(session.id); // Create and join a room by the user's unique session identifier.
+    session.test = "this is a test";
+    session.save();
+
+    let data = await client.get(`room:${session.id}:state`);
+    data ??= await client.set(
+      `room:${session.id}:state`,
+      JSON.stringify({
+        state: true,
+        time: new Date(),
+      })
+    );
+
     const messages = await getRecent();
 
     debug.success(`Session '${session.id}' has connected to socket.`);
@@ -47,12 +59,12 @@ export default function Socket(app: RequestListener, cors: CorsOptions) {
 
     socket.on("message:create", async (message: string) => {
       const msg = {
-        author: socket.id,
+        author: session.id,
         content: message,
         time: new Date(),
       };
 
-      await client.rPush(`chat:${session.id}:messages`, JSON.stringify(msg));
+      await client.rPush(`room:${session.id}:messages`, JSON.stringify(msg));
       socket.emit("message:receive", msg);
       console.log(msg);
     });
@@ -67,7 +79,7 @@ export default function Socket(app: RequestListener, cors: CorsOptions) {
     > {
       if (!session) return [];
 
-      const data = await client.lRange(`chat:${session.id}:messages`, -100, -1);
+      const data = await client.lRange(`room:${session.id}:messages`, -100, -1);
       return data.map((val) => {
         const json = JSON.parse(val) as StoredMessage;
         return {
