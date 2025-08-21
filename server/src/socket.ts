@@ -52,13 +52,12 @@ export default function Socket(app: RequestListener, cors: CorsOptions) {
       })
     );
     const ticket = JSON.parse(String(data)) as SessionInfo;
+    socket.emit("server:started", ticket.time);
 
     const messages = await getRecent();
-
     debug.success(`Session '${session.id}' has connected to socket.`);
 
     // Send recent messages.
-    socket.emit("server:started", ticket.time);
     messages.forEach((message) => {
       socket.emit("message:receive", {
         initial: true,
@@ -67,6 +66,8 @@ export default function Socket(app: RequestListener, cors: CorsOptions) {
     });
 
     socket.on("message:create", async (message: string) => {
+      if (message.length < 3) return;
+
       const msg = {
         author: session.id,
         content: message,

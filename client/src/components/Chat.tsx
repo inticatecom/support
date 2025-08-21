@@ -42,7 +42,7 @@ interface WindowProps {
   loading?: boolean;
   send: (e: React.FormEvent<HTMLFormElement>) => void;
   sending: boolean;
-  messages: Message[];
+  messages: (Message | SystemMessage)[];
 }
 interface FormProps {
   /** Whether or not the send form is visible. */
@@ -60,6 +60,10 @@ interface Message {
   time: Date;
   local?: boolean;
   initial?: boolean;
+}
+interface SystemMessage {
+  content: string;
+  time: Date;
 }
 
 // Sounds
@@ -107,7 +111,7 @@ export default function Chat() {
   const [notice, setNotice] = useState<boolean>(
     getValue("live-chat-notice-open", true)
   );
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [messages, setMessages] = useState<(Message | SystemMessage)[]>([]);
   const [sending, setSending] = useState<boolean>(false);
   const [socket, setSocket] = useState<Socket | undefined>(undefined);
   const [sessionId, setSessionId] = useState<string | null>(null);
@@ -135,14 +139,10 @@ export default function Chat() {
       withCredentials: true,
     });
 
-    socket.on("connect", () => {
-      socket.on("server:started", (time: string) => {
-        console.log(new Date(time));
-      });
-
-      socket.on("message:receive", (message: Message) => {
-        setMessages((prev) => {
-          const messageWithDate = {
+    function addMessage(message: Message | SystemMessage) {
+      setMessages((prev) => {
+        if ("author" in message) {
+          const messageWithDate: Message = {
             ...message,
             time: new Date(message.time),
             local: message.author === sessionId,
@@ -152,12 +152,46 @@ export default function Chat() {
           return newMessages.sort(
             (a, b) => a.time.getTime() - b.time.getTime()
           );
-        });
+        } else {
+          const systemMessageWithDate: SystemMessage = {
+            ...message,
+            time: new Date(message.time),
+          };
 
+          const newMessages = [...prev, systemMessageWithDate];
+          return newMessages.sort(
+            (a, b) => a.time.getTime() - b.time.getTime()
+          );
+        }
+      });
+    }
+
+    socket.on("connect", () => {
+      socket.on("server:started", (time: string) => {
+        addMessage({
+          content: `Chat started at ${new Date(time).toLocaleTimeString(
+            undefined,
+            {
+              hour: "2-digit",
+              minute: "2-digit",
+              hour12: true,
+              hourCycle: "h12",
+            }
+          )}`,
+          time: new Date(time),
+        });
+      });
+
+      socket.on("message:receive", (message: Message) => {
+        addMessage(message);
         if (!message.initial && message.author !== sessionId) playReceive();
       });
 
       setLoading(false);
+    });
+
+    socket.on("disconnect", () => {
+      setMessages([]); // Clear messages on disconnect from session.
     });
 
     setSocket(socket);
@@ -285,19 +319,31 @@ function Window({
       {!loading ? (
         <div className="flex flex-col-reverse gap-3 p-4 h-[570px] overflow-y-auto">
           <div className="flex flex-col gap-3">
-            <p className="text-white/50 self-center text-center text-sm">
-              Chat started at 5:00PM
-            </p>
-            {messages.map((message, index) => (
-              <Bubble
-                key={index}
-                author={message.author}
-                message={message.content}
-                time={message.time}
-                last={index === messages.length - 1}
-                mode={message.local ? "secondary" : "primary"}
-              />
-            ))}
+            {messages.map((message, index) => {
+              // Handle SystemMessage (no author property)
+              if (!("author" in message)) {
+                return (
+                  <p
+                    key={index}
+                    className="text-white/50 self-center text-center text-sm">
+                    {message.content}
+                  </p>
+                );
+              }
+              // Handle Message (has author property)
+              else {
+                return (
+                  <Bubble
+                    key={index}
+                    author={message.author}
+                    message={message.content}
+                    time={message.time}
+                    last={index === messages.length - 1}
+                    mode={message.local ? "secondary" : "primary"}
+                  />
+                );
+              }
+            })}
           </div>
         </div>
       ) : (
