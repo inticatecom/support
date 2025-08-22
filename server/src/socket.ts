@@ -44,14 +44,29 @@ export default function Socket(app: RequestListener, cors: CorsOptions) {
     session.save();
 
     let data = await client.get(`room:${session.id}:state`);
-    data ??= await client.set(
-      `room:${session.id}:state`,
-      JSON.stringify({
+    console.log(data);
+
+    if (!data) {
+      const newData = JSON.stringify({
         state: true,
         time: new Date(),
-      })
-    );
-    const ticket = JSON.parse(String(data)) as SessionInfo;
+      });
+
+      await client.set(`room:${session.id}:state`, newData);
+      data = newData;
+    }
+
+    // data ??= await client
+    //   .set(
+    //     `room:${session.id}:state`,
+    //     JSON.stringify({
+    //       state: true,
+    //       time: new Date(),
+    //     })
+    //   )
+    //   .then((data) => data);
+    console.log(data);
+    const ticket = JSON.parse(data) as SessionInfo;
     socket.emit("server:started", ticket.time);
 
     const messages = await getRecent();

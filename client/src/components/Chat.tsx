@@ -139,29 +139,41 @@ export default function Chat() {
       withCredentials: true,
     });
 
-    function addMessage(message: Message | SystemMessage) {
+    /**
+     * Adds a message and then sorts by the most recently sent message.
+     * @param message The message to append. Either a user or system message.
+     */
+    function addMessage(message: Message | SystemMessage): void {
+      /**
+       * Combines and sorts the old data and the newly appended value by date.
+       * @param previous The current data.
+       * @param append The new value.
+       * @returns The sorted data.
+       */
+      function sort(
+        previous: (Message | SystemMessage)[],
+        append: Message | SystemMessage
+      ): (Message | SystemMessage)[] {
+        const newMessages = [...previous, append];
+        return newMessages.sort((a, b) => a.time.getTime() - b.time.getTime());
+      }
+
       setMessages((prev) => {
         if ("author" in message) {
-          const messageWithDate: Message = {
+          const msg: Message = {
             ...message,
             time: new Date(message.time),
             local: message.author === sessionId,
           };
 
-          const newMessages = [...prev, messageWithDate];
-          return newMessages.sort(
-            (a, b) => a.time.getTime() - b.time.getTime()
-          );
+          return sort(prev, msg);
         } else {
-          const systemMessageWithDate: SystemMessage = {
+          const systemMsg: SystemMessage = {
             ...message,
             time: new Date(message.time),
           };
 
-          const newMessages = [...prev, systemMessageWithDate];
-          return newMessages.sort(
-            (a, b) => a.time.getTime() - b.time.getTime()
-          );
+          return sort(prev, systemMsg);
         }
       });
     }
@@ -181,6 +193,10 @@ export default function Chat() {
           time: new Date(time),
         });
       });
+
+      socket.on("server:message", (message: SystemMessage) =>
+        addMessage(message)
+      );
 
       socket.on("message:receive", (message: Message) => {
         addMessage(message);

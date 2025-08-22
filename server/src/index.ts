@@ -9,13 +9,14 @@ import { debug } from "./lib/Debug";
 import cookieParser from "cookie-parser";
 import cors from "cors";
 
-// Routers
-import chat from "./routes/chat";
+// Types
+import { Request, Response } from "express";
+import { NextFunction } from "express-serve-static-core";
 
 // Schema
 import structure from "./structure";
 
-dotenv.config();
+dotenv.config(); // Make sure environment variables are fully loaded before continuing.
 
 // Variables
 const app = express();
@@ -24,16 +25,17 @@ const client = createClient({
 });
 
 await (async () => {
-  await client.connect();
+  await client.connect(); // Connect to Redis instance.
   debug.info("Connected to Redis instance.");
-  await structure();
+  await structure(); // Construct schema.
   debug.info("Constructed schema and pushed to Redis instance.");
 
+  // Create middleware structure for Express Session.
   const middleware = session({
     store: new RedisStore({ client, prefix: "session:" }),
     secret: String(process.env.SECRET),
     resave: false,
-    saveUninitialized: true, // TODO: Change in future, used to test functionality of session cookie.
+    saveUninitialized: false,
     cookie: {
       secure: false, // TODO: Change in production.
       sameSite: false,
@@ -42,25 +44,36 @@ await (async () => {
     },
   });
 
+  // Define CORS options.
   const corsOptions = {
     origin: ["http://localhost:5173"],
     methods: ["GET", "POST", "PUT", "PATCH"],
     credentials: true,
   };
 
-  app.use(middleware, cors(corsOptions));
+  // Connect middlewares to Express.
+  app.use(cors(corsOptions));
   app.use(cookieParser());
-  app.use("/chats", chat);
+  app.use(middleware);
 
+  // Create route to fetch session ID.
   app.get("/session", (req, res) => {
     if (!req.session) return res.status(404).send("No active session.");
-
     return res.send(req.session.id);
   });
 
-  const { io, server } = socket(app, corsOptions);
+  const { io, server } = socket(app, corsOptions); // Create socket.
 
-  io.engine.use(middleware);
+  // Apply session middleware to socket.
+  io.use((socket, next) =>
+    middleware(
+      socket.request as unknown as Request,
+      {} as Response,
+      next as NextFunction
+    )
+  );
+
+  // Start server on port found in environment variables.
   server.listen(process.env.PORT, () => {
     debug.success(
       `Started HTTP instances on port ${String(process.env.PORT)}.`
@@ -68,4 +81,4 @@ await (async () => {
   });
 })();
 
-export { app, client };
+export { app, client }; // Export Express router and Redis instance for use in other files.
