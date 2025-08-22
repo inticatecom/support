@@ -40,8 +40,11 @@ interface WindowProps {
   setNotice: React.Dispatch<SetStateAction<boolean>>;
   /** Whether or not the window is currently in a loading state. */
   loading: boolean;
+  /** The handler for submitting a message to the current session. */
   send: (e: React.FormEvent<HTMLFormElement>) => void;
+  /** Whether or not the current user is sending a message. */
   sending: boolean;
+  /** The messages that are present in the current session. */
   messages: (Message | SystemMessage)[];
 }
 interface FormProps {
@@ -51,20 +54,31 @@ interface FormProps {
   showNotice: boolean;
   /** The function that allows the notice form state to be modified. */
   setNotice: React.Dispatch<SetStateAction<boolean>>;
+  /** The handler for submitting a message to the current session. */
   send: (e: React.FormEvent<HTMLFormElement>) => void;
+  /** Whether or not the current user is sending a message. */
   sending: boolean;
+  /** Whether or not the user information form should be shown. */
   prompt: boolean;
+  /** Whether or not the chat is still in the process of loading it's components. */
   loading: boolean;
 }
 interface Message {
+  /** The author of the message. */
   author: string;
+  /** The content of the message (ie. the text that was sent in the message). */
   content: string;
+  /** The time the message was sent at. */
   time: Date;
+  /** Whether or not the message was sent by the current user. */
   local?: boolean;
+  /** Was the message already read in a past session meaning that the message is being loaded from the database, not a new message. */
   initial?: boolean;
 }
 interface SystemMessage {
+  /** The content of the message. */
   content: string;
+  /** The time the message was sent at. */
   time: Date;
 }
 
@@ -435,7 +449,7 @@ function Form({
         <form
           className={`flex flex-col w-full gap-1 ${!active && "opacity-0"}`}
           onSubmit={send}>
-          <div className="rounded-xl bg-white/10 text-white p-3 w-full outline-offset-[2.7px] outline-white/30 ring-white/30 focus-within:outline-[2.5] flex justify-between items-center gap-4 has-[:disabled]:text-white/50">
+          <label className="rounded-xl bg-white/10 text-white p-3 w-full outline-offset-[2.7px] outline-white/30 focus-within:outline-[2.5] flex justify-between items-center gap-4 cursor-text has-[:disabled]:text-white/50">
             <input
               className="outline-none w-full disabled:cursor-not-allowed"
               type="text"
@@ -460,7 +474,7 @@ function Form({
                 <CgSpinner className="text-white text-lg animate-spin cursor-not-allowed" />
               )}
             </button>
-          </div>
+          </label>
         </form>
       )}
 
