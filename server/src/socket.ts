@@ -46,8 +46,6 @@ export default function Socket(app: RequestListener, cors: CorsOptions) {
     socket.emit("session:created", session.id);
 
     let data = await client.get(`room:${session.id}:state`);
-    console.log(data);
-
     if (!data) {
       const newData = JSON.stringify({
         state: true,
@@ -58,16 +56,6 @@ export default function Socket(app: RequestListener, cors: CorsOptions) {
       data = newData;
     }
 
-    // data ??= await client
-    //   .set(
-    //     `room:${session.id}:state`,
-    //     JSON.stringify({
-    //       state: true,
-    //       time: new Date(),
-    //     })
-    //   )
-    //   .then((data) => data);
-    console.log(data);
     const ticket = JSON.parse(data) as SessionInfo;
     socket.emit("server:started", ticket.time);
 
@@ -102,7 +90,7 @@ export default function Socket(app: RequestListener, cors: CorsOptions) {
     });
 
     async function getRecent(): Promise<
-      { author: string; content: string; time: Date }[]
+      (Omit<StoredMessage, "time"> & { time: Date })[]
     > {
       if (!session) return [];
 

@@ -53,6 +53,7 @@ interface FormProps {
   setNotice: React.Dispatch<SetStateAction<boolean>>;
   send: (e: React.FormEvent<HTMLFormElement>) => void;
   sending: boolean;
+  prompt: boolean;
 }
 interface Message {
   author: string;
@@ -311,18 +312,22 @@ function Window({
     <motion.div
       initial={{ scale: 0 }}
       animate={open ? { scale: 1 } : { scale: 0 }}
-      className="fixed right-0 bottom-0 mr-5 mb-22 bg-[#121212] rounded-xl w-[365px] border-1 border-white/20 box-border origin-bottom-right shadow-lg shadow-black/20">
+      className="flex flex-col fixed right-0 bottom-0 mr-5 mb-22 bg-[#121212] rounded-xl w-[365px] h-[700px] border-1 border-white/20 box-border origin-bottom-right shadow-lg shadow-black/20">
       <div className="border-b-[1px] border-white/20 flex justify-between items-center p-3">
         <div className="flex justify-center items-center gap-2">
           <button className="cursor-pointer hover:bg-white/10 p-1 rounded-lg transition-colors">
             <IoIosArrowBack className="text-white/50 text-lg" />
           </button>
           <div className="flex justify-center items-center gap-2">
-            <img
-              src="https://luacode.dev/_next/image?url=%2F_next%2Fstatic%2Fmedia%2Ftwobrake.679483fc.jpg&w=2048&q=75"
-              className="aspect-square w-5 rounded-lg"
-            />
-            <h2 className="text-white font-semibold text-[15px]">John H.</h2>
+            {!loading && (
+              <img
+                src="https://luacode.dev/_next/image?url=%2F_next%2Fstatic%2Fmedia%2Ftwobrake.679483fc.jpg&w=2048&q=75"
+                className="aspect-square w-5 rounded-lg"
+              />
+            )}
+            <h2 className="text-white font-semibold text-[15px]">
+              {!loading ? "John H." : "Loading ..."}
+            </h2>
           </div>
         </div>
         <button
@@ -336,7 +341,7 @@ function Window({
       </div>
 
       {!loading ? (
-        <div className="flex flex-col-reverse gap-3 p-4 h-[570px] overflow-y-auto">
+        <div className="flex flex-col-reverse gap-3 p-4 grow-[1] overflow-y-auto">
           <div className="flex flex-col gap-3">
             {messages.map((message, index) => {
               if (!("author" in message)) {
@@ -374,6 +379,7 @@ function Window({
         setNotice={setNotice}
         send={send}
         sending={sending}
+        prompt={false}
       />
     </motion.div>
   );
@@ -409,42 +415,80 @@ function Bubble({ mode, author, message, time, last }: BubbleProps) {
 /**
  * The form that allows users to submit a message to the chat.
  */
-function Form({ active, showNotice, setNotice, send, sending }: FormProps) {
+function Form({
+  active,
+  showNotice,
+  setNotice,
+  send,
+  sending,
+  prompt,
+}: FormProps) {
   // States
   const [sendable, setSendable] = useState<boolean>(false);
 
   return (
-    <form
-      className={`mx-4 mb-4 mt-2 flex flex-col gap-1 ${!active && "opacity-0"}`}
-      onSubmit={send}>
-      <div className="rounded-xl bg-white/10 text-white p-3 w-full outline-offset-[2.7px] outline-white/30 ring-white/30 focus-within:outline-[2.5] flex justify-between items-center gap-4 has-[:disabled]:text-white/50">
-        <input
-          className="outline-none w-full disabled:cursor-not-allowed"
-          type="text"
-          placeholder="Ask a question ..."
-          disabled={sending && sendable}
-          name="message"
-          onChange={(e) => {
-            if (e.target.value.length >= 3) {
-              setSendable(true);
-            } else {
-              setSendable(false);
-            }
-          }}
-        />
-        <button
-          type="submit"
-          className={sendable ? "cursor-pointer" : "cursor-not-allowed"}
-          disabled={!sendable}>
-          {!sending ? (
-            <IoSend className={sendable ? "text-white" : "text-white/30"} />
-          ) : (
-            <CgSpinner className="text-white text-lg animate-spin cursor-not-allowed" />
-          )}
-        </button>
-      </div>
+    <div className="self-end w-full flex flex-col justify-end gap-3 pb-4 px-4">
+      {!prompt && (
+        <form
+          className={`flex flex-col w-full gap-1 ${!active && "opacity-0"}`}
+          onSubmit={send}>
+          <div className="rounded-xl bg-white/10 text-white p-3 w-full outline-offset-[2.7px] outline-white/30 ring-white/30 focus-within:outline-[2.5] flex justify-between items-center gap-4 has-[:disabled]:text-white/50">
+            <input
+              className="outline-none w-full disabled:cursor-not-allowed"
+              type="text"
+              placeholder="Ask a question ..."
+              disabled={sending && sendable}
+              name="message"
+              onChange={(e) => {
+                if (e.target.value.length >= 3) {
+                  setSendable(true);
+                } else {
+                  setSendable(false);
+                }
+              }}
+            />
+            <button
+              type="submit"
+              className={sendable ? "cursor-pointer" : "cursor-not-allowed"}
+              disabled={!sendable}>
+              {!sending ? (
+                <IoSend className={sendable ? "text-white" : "text-white/30"} />
+              ) : (
+                <CgSpinner className="text-white text-lg animate-spin cursor-not-allowed" />
+              )}
+            </button>
+          </div>
+        </form>
+      )}
+
+      {prompt && (
+        <form className="flex flex-col rounded-xl p-4 gap-2 bg-white/10">
+          <label className="flex flex-col gap-1 text-white">
+            Full Name
+            <input
+              type="text"
+              placeholder="Please enter your full name"
+              className="bg-white/10 p-2 text-white rounded-lg outline-white focus:outline-2"
+            />
+          </label>
+          <label className="flex flex-col gap-1 text-white">
+            Email
+            <input
+              type="email"
+              placeholder="Please enter your email address"
+              className="bg-white/10 p-2 text-white rounded-lg outline-white focus:outline-2"
+            />
+          </label>
+          <button
+            type="submit"
+            className="w-full bg-white rounded-lg p-2 text-sm text-black font-semibold cursor-pointer">
+            Start Conversation
+          </button>
+        </form>
+      )}
+
       {showNotice && (
-        <div className="flex justify-center items-center gap-2 bg-white/10 rounded-xl p-3 mt-2">
+        <div className="flex justify-center items-center gap-2 bg-white/10 rounded-xl p-3">
           <p className="text-white/50 text-sm">
             By continuing to use our services, you agree to our terms of privacy
             policy.
@@ -460,6 +504,6 @@ function Form({ active, showNotice, setNotice, send, sending }: FormProps) {
           </button>
         </div>
       )}
-    </form>
+    </div>
   );
 }
