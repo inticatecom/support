@@ -43,6 +43,8 @@ export default function Socket(app: RequestListener, cors: CorsOptions) {
     session.test = "this is a test";
     session.save();
 
+    socket.emit("session:created", session.id);
+
     let data = await client.get(`room:${session.id}:state`);
     console.log(data);
 

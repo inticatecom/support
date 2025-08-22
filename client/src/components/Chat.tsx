@@ -4,7 +4,7 @@ import moment from "moment";
 import { io, Socket } from "socket.io-client";
 
 // Hooks
-import { useEffect, useState, type SetStateAction } from "react";
+import { useEffect, useRef, useState, type SetStateAction } from "react";
 import useSound from "use-sound";
 
 // Interfaces
@@ -113,31 +113,21 @@ export default function Chat() {
   );
   const [messages, setMessages] = useState<(Message | SystemMessage)[]>([]);
   const [sending, setSending] = useState<boolean>(false);
-  const [socket, setSocket] = useState<Socket | undefined>(undefined);
-  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [session, setSession] = useState<string | null>(null);
+
+  // References
+  const socketRef = useRef<Socket>(null);
+  const sessionRef = useRef<string>(null);
 
   // Hooks
   const [playSend] = useSound(SendSound, { volume: 1 });
   const [playReceive] = useSound(ReceiveSound, { volume: 1 });
 
   useEffect(() => {
-    (async () => {
-      setLoading(true);
-      const data = await (
-        await fetch("http://localhost:3000/session", {
-          credentials: "include",
-        })
-      ).text();
-      setSessionId(data || "");
-    })();
-  }, []);
-
-  useEffect(() => {
-    if (!sessionId) return;
-
     const socket = io("http://localhost:3000", {
       withCredentials: true,
     });
+    socketRef.current = socket;
 
     /**
      * Adds a message and then sorts by the most recently sent message.
@@ -160,10 +150,11 @@ export default function Chat() {
 
       setMessages((prev) => {
         if ("author" in message) {
+          // console.log(message.author, session);
           const msg: Message = {
             ...message,
             time: new Date(message.time),
-            local: message.author === sessionId,
+            local: message.author === sessionRef.current,
           };
 
           return sort(prev, msg);
@@ -179,6 +170,11 @@ export default function Chat() {
     }
 
     socket.on("connect", () => {
+      socket.on("session:created", (id: string) => {
+        setSession(id);
+        sessionRef.current = id;
+      });
+
       socket.on("server:started", (time: string) => {
         addMessage({
           content: `Chat started at ${new Date(time).toLocaleTimeString(
@@ -200,21 +196,25 @@ export default function Chat() {
 
       socket.on("message:receive", (message: Message) => {
         addMessage(message);
-        if (!message.initial && message.author !== sessionId) playReceive();
+        if (!message.initial && message.author !== sessionRef.current)
+          playReceive();
       });
 
       setLoading(false);
     });
 
     socket.on("disconnect", () => {
-      setMessages([]); // Clear messages on disconnect from session.
+      setMessages([]); // Clear messages on disconnect from session.j
     });
 
-    setSocket(socket);
     return () => {
       socket.disconnect();
     };
-  }, [sessionId, playReceive]);
+  }, []);
+
+  useEffect(() => {
+    sessionRef.current = session;
+  }, [session]);
 
   /**
    * Triggers when the user submits a message to the chat's form.
@@ -223,11 +223,11 @@ export default function Chat() {
   function sendMsg(e: React.FormEvent<HTMLFormElement>): void {
     e.preventDefault();
 
-    if (!socket) return;
+    if (!socketRef.current) return;
     setSending(true);
 
     const data = new FormData(e.currentTarget);
-    socket.emit("message:create", data.get("message"));
+    socketRef.current.emit("message:create", data.get("message"));
     e.currentTarget.reset();
     playSend();
     setSending(false);
@@ -339,7 +339,6 @@ function Window({
         <div className="flex flex-col-reverse gap-3 p-4 h-[570px] overflow-y-auto">
           <div className="flex flex-col gap-3">
             {messages.map((message, index) => {
-              // Handle SystemMessage (no author property)
               if (!("author" in message)) {
                 return (
                   <p
@@ -348,9 +347,7 @@ function Window({
                     {message.content}
                   </p>
                 );
-              }
-              // Handle Message (has author property)
-              else {
+              } else {
                 return (
                   <Bubble
                     key={index}

@@ -35,12 +35,11 @@ await (async () => {
     store: new RedisStore({ client, prefix: "session:" }),
     secret: String(process.env.SECRET),
     resave: false,
-    saveUninitialized: false,
+    saveUninitialized: true, // TODO: Change this later.
     cookie: {
       secure: false, // TODO: Change in production.
-      sameSite: false,
-      maxAge: 24 * 60 * 60 * 1000,
       httpOnly: true,
+      maxAge: 24 * 60 * 60 * 1000,
     },
   });
 
@@ -55,12 +54,6 @@ await (async () => {
   app.use(cors(corsOptions));
   app.use(cookieParser());
   app.use(middleware);
-
-  // Create route to fetch session ID.
-  app.get("/session", (req, res) => {
-    if (!req.session) return res.status(404).send("No active session.");
-    return res.send(req.session.id);
-  });
 
   const { io, server } = socket(app, corsOptions); // Create socket.
 
