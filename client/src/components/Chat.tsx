@@ -247,7 +247,10 @@ export default function Chat() {
           messages={messages}
         />
       )}
-      <button
+      <motion.button
+        initial={{ scale: 0 }}
+        animate={{ scale: 1 }}
+        transition={{ duration: 0.05 }}
         onClick={() => {
           setOpen(!open);
           setValue("live-chat-open", !open);
@@ -286,7 +289,7 @@ export default function Chat() {
             )}
           </AnimatePresence>
         </motion.div>
-      </button>
+      </motion.button>
     </>
   );
 }
