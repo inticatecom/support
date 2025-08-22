@@ -39,7 +39,7 @@ interface WindowProps {
   /** The function that allows the notice state to be modified. */
   setNotice: React.Dispatch<SetStateAction<boolean>>;
   /** Whether or not the window is currently in a loading state. */
-  loading?: boolean;
+  loading: boolean;
   send: (e: React.FormEvent<HTMLFormElement>) => void;
   sending: boolean;
   messages: (Message | SystemMessage)[];
@@ -54,6 +54,7 @@ interface FormProps {
   send: (e: React.FormEvent<HTMLFormElement>) => void;
   sending: boolean;
   prompt: boolean;
+  loading: boolean;
 }
 interface Message {
   author: string;
@@ -368,7 +369,7 @@ function Window({
           </div>
         </div>
       ) : (
-        <div className="h-96 flex justify-center items-center">
+        <div className="grow-[1] flex justify-center items-center">
           <CgSpinner className="text-white text-4xl animate-spin" />
         </div>
       )}
@@ -380,6 +381,7 @@ function Window({
         send={send}
         sending={sending}
         prompt={false}
+        loading={loading}
       />
     </motion.div>
   );
@@ -422,6 +424,7 @@ function Form({
   send,
   sending,
   prompt,
+  loading,
 }: FormProps) {
   // States
   const [sendable, setSendable] = useState<boolean>(false);
@@ -487,7 +490,7 @@ function Form({
         </form>
       )}
 
-      {showNotice && (
+      {!loading && showNotice && (
         <div className="flex justify-center items-center gap-2 bg-white/10 rounded-xl p-3">
           <p className="text-white/50 text-sm">
             By continuing to use our services, you agree to our terms of privacy
