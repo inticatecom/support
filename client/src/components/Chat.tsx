@@ -7,6 +7,9 @@ import { io, Socket } from "socket.io-client";
 import { useEffect, useRef, useState, type SetStateAction } from "react";
 import useSound from "use-sound";
 
+// Settings
+const BACKEND_URL_BASE: string = "http://localhost:3000";
+
 // Types
 type ConnectEvent = (e: React.FormEvent<HTMLFormElement>) => Promise<boolean>;
 type SendEvent = (e: React.FormEvent<HTMLFormElement>) => void;
@@ -136,7 +139,7 @@ export default function Chat() {
 
   useEffect(() => {
     (async () => {
-      const data = await fetch("http://localhost:3000/session-exists", {
+      const data = await fetch(`${BACKEND_URL_BASE}/status/session`, {
         credentials: "include",
       });
       console.log(await data.text());
@@ -170,7 +173,7 @@ export default function Chat() {
         return;
       }
 
-      const socket = io("http://localhost:3000", {
+      const socket = io(BACKEND_URL_BASE, {
         withCredentials: true,
         query: {
           name: name?.toString(),
@@ -294,12 +297,6 @@ export default function Chat() {
     e.currentTarget.reset();
     playSend();
     setSending(false);
-
-    fetch("http://localhost:3000/session-exists", {
-      credentials: "include",
-    }).then(async (res) => {
-      console.log(await res.text());
-    });
   }
 
   return (

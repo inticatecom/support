@@ -8,6 +8,7 @@ import socket from "./socket";
 import { debug } from "./lib/Debug";
 import cookieParser from "cookie-parser";
 import cors from "cors";
+import status from "./routes/status";
 
 // Schema
 import structure from "./structure";
@@ -49,15 +50,7 @@ await (async () => {
   // Connect middlewares to Express.
   app.use(cors(corsOptions));
   app.use(cookieParser());
-
-  app.get("/session-exists", (req, res) => {
-    const sessionCookie = req.headers.cookie
-      ?.split(";")
-      .find((c) => c.trim().startsWith("connect.sid="));
-
-    return res.send(!!sessionCookie);
-  });
-
+  app.use("/status", status);
   app.use(sessionMiddleware);
 
   const { io, server } = socket(app, corsOptions); // Create socket.
