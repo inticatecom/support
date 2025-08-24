@@ -7,6 +7,12 @@ import { io, Socket } from "socket.io-client";
 import { useEffect, useRef, useState, type SetStateAction } from "react";
 import useSound from "use-sound";
 
+// Types
+type ConnectEvent = (e: React.FormEvent<HTMLFormElement>) => Promise<boolean>;
+type SendEvent = (e: React.FormEvent<HTMLFormElement>) => void;
+type SystemMessage = Pick<Message, "content" | "time">;
+type SetState<T> = React.Dispatch<SetStateAction<T>>;
+
 // Interfaces
 // interface ChatProps {
 //   /** Your API key that allows the component to interact with the API. */
@@ -34,38 +40,26 @@ interface WindowProps {
   /** Whether or not the window is currently in it's visible state. */
   open: boolean;
   /** The function that allows the visible state to be modified. */
-  setOpen: React.Dispatch<SetStateAction<boolean>>;
+  setOpen: SetState<boolean>;
   /** Whether or not the terms and privacy policy notice should be displayed. */
   showNotice: boolean;
   /** The function that allows the notice state to be modified. */
-  setNotice: React.Dispatch<SetStateAction<boolean>>;
+  setNotice: SetState<boolean>;
   /** Whether or not the window is currently in a loading state. */
   loading: boolean;
   /** The handler for submitting a message to the current session. */
-  send: (e: React.FormEvent<HTMLFormElement>) => void;
+  send: SendEvent;
   /** Whether or not the current user is sending a message. */
   sending: boolean;
   /** The messages that are present in the current session. */
   messages: (Message | SystemMessage)[];
   prompt: boolean;
-  connect: (e: React.FormEvent<HTMLFormElement>) => void;
+  connect: ConnectEvent;
 }
-interface FormProps {
+interface FormProps
+  extends Omit<WindowProps, "open" | "setOpen" | "messages" | "loading"> {
   /** Whether or not the send form is visible. */
   active: boolean;
-  /** Whether or not the notice should be displayed below the form. */
-  showNotice: boolean;
-  /** The function that allows the notice form state to be modified. */
-  setNotice: React.Dispatch<SetStateAction<boolean>>;
-  /** The handler for submitting a message to the current session. */
-  send: (e: React.FormEvent<HTMLFormElement>) => void;
-  /** Whether or not the current user is sending a message. */
-  sending: boolean;
-  /** Whether or not the user information form should be shown. */
-  prompt: boolean;
-  /** Whether or not the chat is still in the process of loading it's components. */
-  loading: boolean;
-  connect: (e: React.FormEvent<HTMLFormElement>) => void;
 }
 interface Message {
   /** The author of the message. */
@@ -80,12 +74,6 @@ interface Message {
   local?: boolean;
   /** Was the message already read in a past session meaning that the message is being loaded from the database, not a new message. */
   initial?: boolean;
-}
-interface SystemMessage {
-  /** The content of the message. */
-  content: string;
-  /** The time the message was sent at. */
-  time: Date;
 }
 
 // Sounds
@@ -147,6 +135,15 @@ export default function Chat() {
   const [playReceive] = useSound(ReceiveSound, { volume: 1 });
 
   useEffect(() => {
+    (async () => {
+      const data = await fetch("http://localhost:3000/session-exists", {
+        credentials: "include",
+      });
+      console.log(await data.text());
+    })();
+  }, []);
+
+  useEffect(() => {
     sessionRef.current = session;
   }, [session]);
 
@@ -154,107 +151,131 @@ export default function Chat() {
    * Connects and initializes the socket.
    * @param e The form event.
    */
-  function connect(e: React.FormEvent<HTMLFormElement>): void {
+  async function connect(
+    e: React.FormEvent<HTMLFormElement>
+  ): Promise<boolean> {
     e.preventDefault();
 
-    if (socketRef.current) {
-      socketRef.current.disconnect();
-    }
-
-    const data = new FormData(e.currentTarget);
-    const name = data.get("name");
-    const email = data.get("email");
-
-    if (!name || !email) return;
-
-    const socket = io("http://localhost:3000", {
-      withCredentials: true,
-      query: {
-        name: name?.toString(),
-        email: email?.toString(),
-      },
-    });
-
-    socketRef.current = socket;
-
-    /**
-     * Adds a message and then sorts by the most recently sent message.
-     * @param message The message to append. Either a user or system message.
-     */
-    function addMessage(message: Message | SystemMessage): void {
-      /**
-       * Combines and sorts the old data and the newly appended value by date.
-       * @param previous The current data.
-       * @param append The new value.
-       * @returns The sorted data.
-       */
-      function sort(
-        previous: (Message | SystemMessage)[],
-        append: Message | SystemMessage
-      ): (Message | SystemMessage)[] {
-        const newMessages = [...previous, append];
-        return newMessages.sort((a, b) => a.time.getTime() - b.time.getTime());
+    return new Promise((resolve, reject) => {
+      if (socketRef.current) {
+        socketRef.current.disconnect();
       }
 
-      setMessages((prev) => {
-        if ("author" in message) {
-          // console.log(message.author, session);
-          const msg: Message = {
-            ...message,
-            name: message.name,
-            time: new Date(message.time),
-            local: message.author === sessionRef.current,
-          };
+      const data = new FormData(e.currentTarget);
+      const name = data.get("name");
+      const email = data.get("email");
 
-          return sort(prev, msg);
-        } else {
-          const systemMsg: SystemMessage = {
-            ...message,
-            time: new Date(message.time),
-          };
+      if (!name || !email) {
+        resolve(false);
+        return;
+      }
 
-          return sort(prev, systemMsg);
+      const socket = io("http://localhost:3000", {
+        withCredentials: true,
+        query: {
+          name: name?.toString(),
+          email: email?.toString(),
+        },
+      });
+
+      socketRef.current = socket;
+
+      const connTimeout = setTimeout(() => {
+        socket.disconnect();
+        reject(new Error("Connection timed out."));
+      }, 10000);
+
+      /**
+       * Adds a message and then sorts by the most recently sent message.
+       * @param message The message to append. Either a user or system message.
+       */
+      function addMessage(message: Message | SystemMessage): void {
+        /**
+         * Combines and sorts the old data and the newly appended value by date.
+         * @param previous The current data.
+         * @param append The new value.
+         * @returns The sorted data.
+         */
+        function sort(
+          previous: (Message | SystemMessage)[],
+          append: Message | SystemMessage
+        ): (Message | SystemMessage)[] {
+          const newMessages = [...previous, append];
+          return newMessages.sort(
+            (a, b) => a.time.getTime() - b.time.getTime()
+          );
         }
-      });
-    }
 
-    socket.on("connect", () => {
-      socket.on("session:created", (id: string) => {
-        setSession(id);
-        sessionRef.current = id;
-      });
+        setMessages((prev) => {
+          if ("author" in message) {
+            // console.log(message.author, session);
+            const msg: Message = {
+              ...message,
+              name: message.name,
+              time: new Date(message.time),
+              local: message.author === sessionRef.current,
+            };
 
-      socket.on("server:started", (time: string) => {
-        addMessage({
-          content: `Chat started at ${new Date(time).toLocaleTimeString(
-            undefined,
-            {
-              hour: "2-digit",
-              minute: "2-digit",
-              hour12: true,
-              hourCycle: "h12",
-            }
-          )}`,
-          time: new Date(time),
+            return sort(prev, msg);
+          } else {
+            const systemMsg: SystemMessage = {
+              ...message,
+              time: new Date(message.time),
+            };
+
+            return sort(prev, systemMsg);
+          }
         });
+      }
+
+      socket.on("connect", () => {
+        clearTimeout(connTimeout);
+
+        socket.on("session:created", (id: string) => {
+          setSession(id);
+          sessionRef.current = id;
+        });
+
+        socket.on("server:started", (time: string) => {
+          addMessage({
+            content: `Chat started at ${new Date(time).toLocaleTimeString(
+              undefined,
+              {
+                hour: "2-digit",
+                minute: "2-digit",
+                hour12: true,
+                hourCycle: "h12",
+              }
+            )}`,
+            time: new Date(time),
+          });
+        });
+
+        socket.on("server:message", (message: SystemMessage) =>
+          addMessage(message)
+        );
+
+        socket.on("message:receive", (message: Message) => {
+          addMessage(message);
+          if (!message.initial && message.author !== sessionRef.current)
+            playReceive();
+        });
+
+        setShowPrompt(false);
+        setLoading(false);
+
+        resolve(true);
       });
 
-      socket.on("server:message", (message: SystemMessage) =>
-        addMessage(message)
-      );
-
-      socket.on("message:receive", (message: Message) => {
-        addMessage(message);
-        if (!message.initial && message.author !== sessionRef.current)
-          playReceive();
+      socket.on("connect_error", (e) => {
+        clearTimeout(connTimeout);
+        console.error("Connection error:", e);
+        reject(e);
       });
 
-      setShowPrompt(false);
-      setLoading(false);
-    });
-
-    socket.on("disconnect", () => {
-      setMessages([]); // Clear messages on disconnect from session.j
+      socket.on("disconnect", () => {
+        setMessages([]); // Clear messages on disconnect from session.j
+      });
     });
   }
 
@@ -429,7 +450,6 @@ function Window({
         send={send}
         sending={sending}
         prompt={prompt}
-        loading={loading}
         connect={connect}
       />
     </motion.div>
@@ -473,11 +493,11 @@ function Form({
   send,
   sending,
   prompt,
-  loading,
   connect,
 }: FormProps) {
   // States
   const [sendable, setSendable] = useState<boolean>(false);
+  const [connecting, setConnecting] = useState<boolean>(false);
 
   return (
     <div className="self-end w-full flex flex-col justify-end gap-3 pb-4 px-4">
@@ -517,15 +537,28 @@ function Form({
       {prompt && (
         <form
           className="flex flex-col rounded-xl p-4 gap-2 bg-white/2 border-1 border-white/10"
-          onSubmit={connect}>
+          onSubmit={async (e) => {
+            setConnecting(true);
+            try {
+              const result = await connect(e);
+              if (result) {
+                console.log("Connection successful.");
+              }
+            } catch (e) {
+              console.error(e);
+            } finally {
+              setConnecting(false);
+            }
+          }}>
           <label className="flex flex-col gap-1 text-white">
             Full Name
             <input
               type="text"
               name="name"
               placeholder="Please enter your full name"
+              disabled={connecting}
               required
-              className="bg-white/5 p-2 text-white rounded-lg outline-white focus:outline-2 border-1 border-white/10"
+              className="bg-white/5 p-2 text-white rounded-lg outline-white disabled:cursor-not-allowed focus:outline-2 border-1 border-white/10"
             />
           </label>
           <label className="flex flex-col gap-1 text-white">
@@ -534,19 +567,24 @@ function Form({
               type="email"
               name="email"
               placeholder="Please enter your email address"
+              disabled={connecting}
               required
-              className="bg-white/5 p-2 text-white rounded-lg outline-white focus:outline-2 border-1 border-white/10"
+              className="bg-white/5 p-2 text-white rounded-lg outline-white disabled:cursor-not-allowed focus:outline-2 border-1 border-white/10"
             />
           </label>
           <button
             type="submit"
-            className="w-full bg-white rounded-lg p-2 text-sm text-black font-semibold cursor-pointer hover:bg-white/95 transition-colors">
-            Start Conversation
+            className="flex justify-center items-center w-full bg-white rounded-lg p-2 text-sm text-black font-semibold cursor-pointer hover:bg-white/95 transition-colors">
+            {!connecting ? (
+              "Start Conversation"
+            ) : (
+              <CgSpinner className="text-black animate-spin text-[20px]" />
+            )}
           </button>
         </form>
       )}
 
-      {!loading && showNotice && (
+      {showNotice && (
         <div className="flex justify-center items-center gap-2 bg-white/10 rounded-xl p-3">
           <p className="text-white/50 text-sm">
             By continuing to use our services, you agree to our{" "}

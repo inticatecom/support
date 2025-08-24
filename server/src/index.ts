@@ -50,13 +50,13 @@ await (async () => {
   app.use(cors(corsOptions));
   app.use(cookieParser());
 
-  // app.get("/session-exists", (req, res) => {
-  //   const sessionCookie = req.headers.cookie
-  //     ?.split(";")
-  //     .find((c) => c.trim().startsWith("connect.sid="));
+  app.get("/session-exists", (req, res) => {
+    const sessionCookie = req.headers.cookie
+      ?.split(";")
+      .find((c) => c.trim().startsWith("connect.sid="));
 
-  //   return res.send(!!sessionCookie);
-  // });
+    return res.send(!!sessionCookie);
+  });
 
   app.use(sessionMiddleware);
 

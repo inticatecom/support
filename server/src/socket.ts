@@ -50,7 +50,7 @@ export default function Socket(app: RequestListener, cors: CorsOptions) {
 
     const params = socket.handshake.query;
 
-    if (!params.name || !params.email) {
+    if ((!params.name && !session.name) || (!params.email && !session.email)) {
       socket.disconnect(true);
       return;
     }
