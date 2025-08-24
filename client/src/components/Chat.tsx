@@ -22,6 +22,7 @@ interface BubbleProps {
   mode?: "primary" | "secondary";
   /** The username of the user who sent the message. */
   author: string;
+  name: string;
   /** The content of the message. */
   message: string;
   /** The time the message was sent at. */
@@ -46,6 +47,8 @@ interface WindowProps {
   sending: boolean;
   /** The messages that are present in the current session. */
   messages: (Message | SystemMessage)[];
+  prompt: boolean;
+  connect: (e: React.FormEvent<HTMLFormElement>) => void;
 }
 interface FormProps {
   /** Whether or not the send form is visible. */
@@ -62,10 +65,13 @@ interface FormProps {
   prompt: boolean;
   /** Whether or not the chat is still in the process of loading it's components. */
   loading: boolean;
+  connect: (e: React.FormEvent<HTMLFormElement>) => void;
 }
 interface Message {
   /** The author of the message. */
   author: string;
+  /** The display name of the user who sent the message. */
+  name: string;
   /** The content of the message (ie. the text that was sent in the message). */
   content: string;
   /** The time the message was sent at. */
@@ -130,6 +136,7 @@ export default function Chat() {
   const [messages, setMessages] = useState<(Message | SystemMessage)[]>([]);
   const [sending, setSending] = useState<boolean>(false);
   const [session, setSession] = useState<string | null>(null);
+  const [showPrompt, setShowPrompt] = useState<boolean>(true);
 
   // References
   const socketRef = useRef<Socket>(null);
@@ -140,9 +147,34 @@ export default function Chat() {
   const [playReceive] = useSound(ReceiveSound, { volume: 1 });
 
   useEffect(() => {
+    sessionRef.current = session;
+  }, [session]);
+
+  /**
+   * Connects and initializes the socket.
+   * @param e The form event.
+   */
+  function connect(e: React.FormEvent<HTMLFormElement>): void {
+    e.preventDefault();
+
+    if (socketRef.current) {
+      socketRef.current.disconnect();
+    }
+
+    const data = new FormData(e.currentTarget);
+    const name = data.get("name");
+    const email = data.get("email");
+
+    if (!name || !email) return;
+
     const socket = io("http://localhost:3000", {
       withCredentials: true,
+      query: {
+        name: name?.toString(),
+        email: email?.toString(),
+      },
     });
+
     socketRef.current = socket;
 
     /**
@@ -169,6 +201,7 @@ export default function Chat() {
           // console.log(message.author, session);
           const msg: Message = {
             ...message,
+            name: message.name,
             time: new Date(message.time),
             local: message.author === sessionRef.current,
           };
@@ -216,21 +249,14 @@ export default function Chat() {
           playReceive();
       });
 
+      setShowPrompt(false);
       setLoading(false);
     });
 
     socket.on("disconnect", () => {
       setMessages([]); // Clear messages on disconnect from session.j
     });
-
-    return () => {
-      socket.disconnect();
-    };
-  }, []);
-
-  useEffect(() => {
-    sessionRef.current = session;
-  }, [session]);
+  }
 
   /**
    * Triggers when the user submits a message to the chat's form.
@@ -247,6 +273,12 @@ export default function Chat() {
     e.currentTarget.reset();
     playSend();
     setSending(false);
+
+    fetch("http://localhost:3000/session-exists", {
+      credentials: "include",
+    }).then(async (res) => {
+      console.log(await res.text());
+    });
   }
 
   return (
@@ -261,6 +293,8 @@ export default function Chat() {
           send={sendMsg}
           sending={sending}
           messages={messages}
+          connect={connect}
+          prompt={showPrompt}
         />
       )}
       <motion.button
@@ -322,6 +356,8 @@ function Window({
   send,
   sending,
   messages,
+  connect,
+  prompt,
 }: WindowProps) {
   return (
     <motion.div
@@ -335,13 +371,10 @@ function Window({
           </button>
           <div className="flex justify-center items-center gap-2">
             {!loading && (
-              <img
-                src="https://luacode.dev/_next/image?url=%2F_next%2Fstatic%2Fmedia%2Ftwobrake.679483fc.jpg&w=2048&q=75"
-                className="aspect-square w-5 rounded-lg"
-              />
+              <CgSpinner className="text-white animate-spin text-lg" />
             )}
-            <h2 className="text-white font-semibold text-[15px]">
-              {!loading ? "John H." : "Loading ..."}
+            <h2 className="text-white font-semibold text-[14px]">
+              {!loading ? "Waiting for Agent" : "Live Chat"}
             </h2>
           </div>
         </div>
@@ -372,6 +405,7 @@ function Window({
                   <Bubble
                     key={index}
                     author={message.author}
+                    name={message.name}
                     message={message.content}
                     time={message.time}
                     last={index === messages.length - 1}
@@ -394,8 +428,9 @@ function Window({
         setNotice={setNotice}
         send={send}
         sending={sending}
-        prompt={false}
+        prompt={prompt}
         loading={loading}
+        connect={connect}
       />
     </motion.div>
   );
@@ -404,7 +439,7 @@ function Window({
 /**
  * A message display containing the author, message, and time it was sent at.
  */
-function Bubble({ mode, author, message, time, last }: BubbleProps) {
+function Bubble({ mode, name, message, time, last }: BubbleProps) {
   return (
     <div
       className={`flex flex-col w-11/12 ${mode === "secondary" && "self-end"}`}>
@@ -421,7 +456,7 @@ function Bubble({ mode, author, message, time, last }: BubbleProps) {
           className={`text-[14px] text-white/30 w-full ${
             mode === "secondary" ? "self-end text-right mr-2" : "ml-2"
           }`}>
-          {author} • {moment(time).fromNow()}
+          {name} • {moment(time).fromNow()}
         </p>
       )}
     </div>
@@ -439,6 +474,7 @@ function Form({
   sending,
   prompt,
   loading,
+  connect,
 }: FormProps) {
   // States
   const [sendable, setSendable] = useState<boolean>(false);
@@ -479,26 +515,32 @@ function Form({
       )}
 
       {prompt && (
-        <form className="flex flex-col rounded-xl p-4 gap-2 bg-white/10">
+        <form
+          className="flex flex-col rounded-xl p-4 gap-2 bg-white/2 border-1 border-white/10"
+          onSubmit={connect}>
           <label className="flex flex-col gap-1 text-white">
             Full Name
             <input
               type="text"
+              name="name"
               placeholder="Please enter your full name"
-              className="bg-white/10 p-2 text-white rounded-lg outline-white focus:outline-2"
+              required
+              className="bg-white/5 p-2 text-white rounded-lg outline-white focus:outline-2 border-1 border-white/10"
             />
           </label>
           <label className="flex flex-col gap-1 text-white">
             Email
             <input
               type="email"
+              name="email"
               placeholder="Please enter your email address"
-              className="bg-white/10 p-2 text-white rounded-lg outline-white focus:outline-2"
+              required
+              className="bg-white/5 p-2 text-white rounded-lg outline-white focus:outline-2 border-1 border-white/10"
             />
           </label>
           <button
             type="submit"
-            className="w-full bg-white rounded-lg p-2 text-sm text-black font-semibold cursor-pointer">
+            className="w-full bg-white rounded-lg p-2 text-sm text-black font-semibold cursor-pointer hover:bg-white/95 transition-colors">
             Start Conversation
           </button>
         </form>
@@ -507,8 +549,21 @@ function Form({
       {!loading && showNotice && (
         <div className="flex justify-center items-center gap-2 bg-white/10 rounded-xl p-3">
           <p className="text-white/50 text-sm">
-            By continuing to use our services, you agree to our terms of privacy
-            policy.
+            By continuing to use our services, you agree to our{" "}
+            <a
+              href="https://inticate.com/terms"
+              target="_blank"
+              className="underline hover:text-blue-500">
+              terms
+            </a>{" "}
+            and{" "}
+            <a
+              href="https://inticate.com/privacy"
+              target="_blank"
+              className="underline hover:text-blue-500">
+              privacy policy
+            </a>
+            .
           </p>
           <button
             type="button"

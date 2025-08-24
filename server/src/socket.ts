@@ -8,6 +8,7 @@ import { client } from ".";
 // Interfaces
 interface StoredMessage {
   author: string;
+  name: string;
   content: string;
   time: string;
 }
@@ -24,14 +25,20 @@ declare module "http" {
   }
 }
 
+/**
+ * The base initializer for the Socket.io server.
+ * @param app The Express application.
+ * @param cors The CORS policy options.
+ */
 export default function Socket(app: RequestListener, cors: CorsOptions) {
   const server = createServer(app);
   const io = new Server(server, {
-    cors: cors,
+    cors,
   });
 
   io.on("connection", async (socket) => {
     const session = socket.request.session; // The session ID received when the user connects to the socket.
+    console.log(session);
 
     // Make sure the session exists, otherwise close connection and return.
     if (!session) {
@@ -40,7 +47,17 @@ export default function Socket(app: RequestListener, cors: CorsOptions) {
     }
 
     await socket.join(session.id); // Create and join a room by the user's unique session identifier.
-    session.test = "this is a test";
+
+    const params = socket.handshake.query;
+
+    if (!params.name || !params.email) {
+      socket.disconnect(true);
+      return;
+    }
+
+    session.name = String(params.name);
+    session.email = String(params.email);
+
     session.save();
 
     socket.emit("session:created", session.id);
@@ -73,10 +90,11 @@ export default function Socket(app: RequestListener, cors: CorsOptions) {
     socket.on("message:create", async (message: string) => {
       if (message.length < 3) return;
 
-      const msg = {
+      const msg: StoredMessage = {
         author: session.id,
+        name: session.name as string,
         content: message,
-        time: new Date(),
+        time: new Date().toISOString(),
       };
 
       await client.rPush(`room:${session.id}:messages`, JSON.stringify(msg));
@@ -99,6 +117,7 @@ export default function Socket(app: RequestListener, cors: CorsOptions) {
         const json = JSON.parse(val) as StoredMessage;
         return {
           author: json.author,
+          name: session.name as string,
           content: json.content,
           time: new Date(json.time),
         };
