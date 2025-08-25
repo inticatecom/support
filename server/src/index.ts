@@ -32,7 +32,7 @@ await (async () => {
     store: new RedisStore({ client, prefix: "session:" }),
     secret: String(process.env.SECRET),
     resave: false,
-    saveUninitialized: false,
+    saveUninitialized: true,
     cookie: {
       secure: String(process.env.ENVIRONMENT) === "production",
       httpOnly: true,
@@ -50,6 +50,7 @@ await (async () => {
   // Connect middlewares to Express.
   app.use(cors(corsOptions));
   app.use(cookieParser());
+  app.use(express.json());
   app.use("/status", status);
   app.use(sessionMiddleware);
 

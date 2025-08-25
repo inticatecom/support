@@ -7,7 +7,7 @@ import { client } from ".";
 
 // Interfaces
 interface StoredMessage {
-  author: string;
+  session: string;
   name: string;
   content: string;
   time: string;
@@ -48,20 +48,25 @@ export default function Socket(app: RequestListener, cors: CorsOptions) {
 
     await socket.join(session.id); // Create and join a room by the user's unique session identifier.
 
-    const params = socket.handshake.query;
+    const params = socket.handshake.query; // Fetch any query parameters attached to the socket connection.
 
+    // Make sure that either the query params are provided, or they have already been attached to the session in the past.
     if ((!params.name && !session.name) || (!params.email && !session.email)) {
       socket.disconnect(true);
       return;
     }
 
-    session.name = String(params.name);
-    session.email = String(params.email);
+    // Assign query params to the session.
+    if (!session.name && !session.email) {
+      session.name = String(params.name);
+      session.email = String(params.email);
+    }
 
-    session.save();
+    session.save(); // Save the session details to the database.
 
-    socket.emit("session:created", session.id);
+    socket.emit("session:created", session.id); // Tell the client the session has started.
 
+    // Fetch previous data or create a new entry in the database.
     let data = await client.get(`room:${session.id}:state`);
     if (!data) {
       const newData = JSON.stringify({
@@ -73,13 +78,13 @@ export default function Socket(app: RequestListener, cors: CorsOptions) {
       data = newData;
     }
 
-    const ticket = JSON.parse(data) as SessionInfo;
-    socket.emit("server:started", ticket.time);
+    const ticket = JSON.parse(data) as SessionInfo; // Convert he stored data to valid JSON.
+    socket.emit("server:started", ticket.time); // Tell the client when the session started at.
 
-    const messages = await getRecent();
+    const messages = await getRecent(); // Fetch the last 100 messages in the chat.
     debug.success(`Session '${session.id}' has connected to socket.`);
 
-    // Send recent messages.
+    // Send recent messages to client.
     messages.forEach((message) => {
       socket.emit("message:receive", {
         initial: true,
@@ -91,7 +96,7 @@ export default function Socket(app: RequestListener, cors: CorsOptions) {
       if (message.length < 3) return;
 
       const msg: StoredMessage = {
-        author: session.id,
+        session: session.id,
         name: session.name as string,
         content: message,
         time: new Date().toISOString(),
@@ -116,7 +121,7 @@ export default function Socket(app: RequestListener, cors: CorsOptions) {
       return data.map((val) => {
         const json = JSON.parse(val) as StoredMessage;
         return {
-          author: json.author,
+          session: json.session,
           name: session.name as string,
           content: json.content,
           time: new Date(json.time),

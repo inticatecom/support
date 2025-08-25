@@ -4,11 +4,18 @@ import moment from "moment";
 import { io, Socket } from "socket.io-client";
 
 // Hooks
-import { useEffect, useRef, useState, type SetStateAction } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  useCallback,
+  type SetStateAction,
+} from "react";
 import useSound from "use-sound";
 
 // Settings
 const BACKEND_URL_BASE: string = "http://localhost:3000";
+const CONNECTION_TIMEOUT: number = 10;
 
 // Types
 type ConnectEvent = (e: React.FormEvent<HTMLFormElement>) => Promise<boolean>;
@@ -26,18 +33,13 @@ type SetState<T> = React.Dispatch<SetStateAction<T>>;
 //     debug?: boolean;
 //   };
 // }
-interface BubbleProps {
+interface BubbleProps extends Pick<Message, "session" | "name" | "time"> {
   /** The color scheme of the chat bubble. */
   mode?: "primary" | "secondary";
-  /** The username of the user who sent the message. */
-  author: string;
-  name: string;
   /** The content of the message. */
   message: string;
-  /** The time the message was sent at. */
-  time: Date;
   /** Whether or not the message is the most recent one in the list. */
-  last?: boolean;
+  mostRecent?: boolean;
 }
 interface WindowProps {
   /** Whether or not the window is currently in it's visible state. */
@@ -56,8 +58,10 @@ interface WindowProps {
   sending: boolean;
   /** The messages that are present in the current session. */
   messages: (Message | SystemMessage)[];
+  /** Whether or not the initial session details form is shown. */
   prompt: boolean;
-  connect: ConnectEvent;
+  /** The event that triggers when the socket will attempt a connection. */
+  startSession: ConnectEvent;
 }
 interface FormProps
   extends Omit<WindowProps, "open" | "setOpen" | "messages" | "loading"> {
@@ -65,8 +69,8 @@ interface FormProps
   active: boolean;
 }
 interface Message {
-  /** The author of the message. */
-  author: string;
+  /** The session ID from which the message was sent from. */
+  session: string;
   /** The display name of the user who sent the message. */
   name: string;
   /** The content of the message (ie. the text that was sent in the message). */
@@ -132,109 +136,50 @@ export default function Chat() {
   // References
   const socketRef = useRef<Socket>(null);
   const sessionRef = useRef<string>(null);
+  const sessionExistsRef = useRef<boolean>(false);
 
   // Hooks
   const [playSend] = useSound(SendSound, { volume: 1 });
   const [playReceive] = useSound(ReceiveSound, { volume: 1 });
 
-  useEffect(() => {
-    (async () => {
-      const data = await fetch(`${BACKEND_URL_BASE}/status/session`, {
-        credentials: "include",
-      });
-      console.log(await data.text());
-    })();
-  }, []);
-
-  useEffect(() => {
-    sessionRef.current = session;
-  }, [session]);
-
   /**
-   * Connects and initializes the socket.
-   * @param e The form event.
+   * Establish's a connection between the client and backend socket.
+   * @param params The query parameters to attach to the socket initially. Params do not need to be attached if the session already exists.
+   * @returns A promise resolving the request when the client connects to the socket.
    */
-  async function connect(
-    e: React.FormEvent<HTMLFormElement>
-  ): Promise<boolean> {
-    e.preventDefault();
-
+  const establishConn = useCallback<
+    (params?: Record<string, unknown>) => Promise<boolean>
+  >(async (params) => {
     return new Promise((resolve, reject) => {
-      if (socketRef.current) {
-        socketRef.current.disconnect();
-      }
+      if (socketRef.current) socketRef.current.disconnect(); // If the socket already exists, disconnect it to allow for a new connection.
 
-      const data = new FormData(e.currentTarget);
-      const name = data.get("name");
-      const email = data.get("email");
-
-      if (!name || !email) {
+      // Make sure that if the params do not exist, the session exists, otherwise bail out early.
+      if (!params && !sessionExistsRef.current) {
         resolve(false);
         return;
       }
 
+      // Create Socket.io client.
       const socket = io(BACKEND_URL_BASE, {
         withCredentials: true,
-        query: {
-          name: name?.toString(),
-          email: email?.toString(),
-        },
+        query: params,
       });
 
-      socketRef.current = socket;
+      socketRef.current = socket; // Assign socket reference the newly created socket instance.
 
-      const connTimeout = setTimeout(() => {
+      // Set timeout for connection time.
+      const timeout = setTimeout(() => {
         socket.disconnect();
-        reject(new Error("Connection timed out."));
-      }, 10000);
+        console.log("disconnected");
+        reject(new Error("Socket connection exceeded timeout length."));
+      }, CONNECTION_TIMEOUT * 1000);
 
-      /**
-       * Adds a message and then sorts by the most recently sent message.
-       * @param message The message to append. Either a user or system message.
-       */
-      function addMessage(message: Message | SystemMessage): void {
-        /**
-         * Combines and sorts the old data and the newly appended value by date.
-         * @param previous The current data.
-         * @param append The new value.
-         * @returns The sorted data.
-         */
-        function sort(
-          previous: (Message | SystemMessage)[],
-          append: Message | SystemMessage
-        ): (Message | SystemMessage)[] {
-          const newMessages = [...previous, append];
-          return newMessages.sort(
-            (a, b) => a.time.getTime() - b.time.getTime()
-          );
-        }
+      // Connect listeners and run logic to tell user socket has successfully connected.
+      socket.once("connect", () => {
+        console.log("connected");
+        clearTimeout(timeout);
 
-        setMessages((prev) => {
-          if ("author" in message) {
-            // console.log(message.author, session);
-            const msg: Message = {
-              ...message,
-              name: message.name,
-              time: new Date(message.time),
-              local: message.author === sessionRef.current,
-            };
-
-            return sort(prev, msg);
-          } else {
-            const systemMsg: SystemMessage = {
-              ...message,
-              time: new Date(message.time),
-            };
-
-            return sort(prev, systemMsg);
-          }
-        });
-      }
-
-      socket.on("connect", () => {
-        clearTimeout(connTimeout);
-
-        socket.on("session:created", (id: string) => {
+        socket.once("session:created", (id: string) => {
           setSession(id);
           sessionRef.current = id;
         });
@@ -260,25 +205,111 @@ export default function Chat() {
 
         socket.on("message:receive", (message: Message) => {
           addMessage(message);
-          if (!message.initial && message.author !== sessionRef.current)
+          if (!message.initial && message.session !== sessionRef.current)
             playReceive();
         });
 
         setShowPrompt(false);
         setLoading(false);
 
-        resolve(true);
+        resolve(true); // Tell the client that the connection between the client and the socket has been successful.
       });
 
-      socket.on("connect_error", (e) => {
-        clearTimeout(connTimeout);
-        console.error("Connection error:", e);
+      // Reject promise and clear timeout if socket refuses to connect.
+      socket.once("connect_error", (e) => {
+        clearTimeout(timeout);
+        console.error(e);
+
         reject(e);
       });
 
-      socket.on("disconnect", () => {
-        setMessages([]); // Clear messages on disconnect from session.j
+      // Clear messages on socket disconnection.
+      socket.once("disconnect", () => {
+        console.log("cleared timeout on disconnect");
+        clearTimeout(timeout);
+        setMessages([]);
       });
+
+      /**
+       * Adds a message and then sorts by the most recently sent message.
+       * @param message The message to append. Either a user or system message.
+       */
+      function addMessage(message: Message | SystemMessage): void {
+        /**
+         * Combines and sorts the old data and the newly appended value by date.
+         * @param previous The current data.
+         * @param append The new value.
+         * @returns The sorted data.
+         */
+        function sort(
+          previous: (Message | SystemMessage)[],
+          append: Message | SystemMessage
+        ): (Message | SystemMessage)[] {
+          const newMessages = [...previous, append];
+          return newMessages.sort(
+            (a, b) => a.time.getTime() - b.time.getTime()
+          );
+        }
+
+        setMessages((prev) => {
+          if ("session" in message) {
+            const msg: Message = {
+              ...message,
+              session: message.session,
+              time: new Date(message.time),
+              local: message.session === sessionRef.current,
+            };
+
+            return sort(prev, msg);
+          } else {
+            const systemMsg: SystemMessage = {
+              ...message,
+              time: new Date(message.time),
+            };
+
+            return sort(prev, systemMsg);
+          }
+        });
+      }
+    });
+  }, []);
+
+  useEffect(() => {
+    (async () => {
+      const exists = await (
+        await fetch(`${BACKEND_URL_BASE}/status/session`, {
+          credentials: "include",
+        })
+      ).text();
+      sessionExistsRef.current = exists === "true";
+      if (exists === "true") {
+        establishConn();
+      }
+      console.log("fetched");
+    })();
+
+    return () => {
+      socketRef.current?.disconnect();
+    };
+  }, [establishConn]);
+
+  useEffect(() => {
+    sessionRef.current = session;
+  }, [session]);
+
+  /**
+   * Connects and initializes the socket.
+   * @param e The form event.
+   */
+  async function startSession(
+    e: React.FormEvent<HTMLFormElement>
+  ): Promise<boolean> {
+    e.preventDefault();
+
+    const data = new FormData(e.currentTarget);
+    return await establishConn({
+      name: data.get("name"),
+      email: data.get("email"),
     });
   }
 
@@ -311,7 +342,7 @@ export default function Chat() {
           send={sendMsg}
           sending={sending}
           messages={messages}
-          connect={connect}
+          startSession={startSession}
           prompt={showPrompt}
         />
       )}
@@ -374,7 +405,7 @@ function Window({
   send,
   sending,
   messages,
-  connect,
+  startSession,
   prompt,
 }: WindowProps) {
   return (
@@ -410,7 +441,7 @@ function Window({
         <div className="flex flex-col-reverse gap-3 p-4 grow-[1] overflow-y-auto">
           <div className="flex flex-col gap-3">
             {messages.map((message, index) => {
-              if (!("author" in message)) {
+              if (!("session" in message)) {
                 return (
                   <p
                     key={index}
@@ -422,11 +453,11 @@ function Window({
                 return (
                   <Bubble
                     key={index}
-                    author={message.author}
+                    session={message.session}
                     name={message.name}
                     message={message.content}
                     time={message.time}
-                    last={index === messages.length - 1}
+                    mostRecent={index === messages.length - 1}
                     mode={message.local ? "secondary" : "primary"}
                   />
                 );
@@ -447,7 +478,7 @@ function Window({
         send={send}
         sending={sending}
         prompt={prompt}
-        connect={connect}
+        startSession={startSession}
       />
     </motion.div>
   );
@@ -456,7 +487,7 @@ function Window({
 /**
  * A message display containing the author, message, and time it was sent at.
  */
-function Bubble({ mode, name, message, time, last }: BubbleProps) {
+function Bubble({ mode, name, message, time, mostRecent }: BubbleProps) {
   return (
     <div
       className={`flex flex-col w-11/12 ${mode === "secondary" && "self-end"}`}>
@@ -468,7 +499,7 @@ function Bubble({ mode, name, message, time, last }: BubbleProps) {
         }`}>
         {message}
       </p>
-      {last && (
+      {mostRecent && (
         <p
           className={`text-[14px] text-white/30 w-full ${
             mode === "secondary" ? "self-end text-right mr-2" : "ml-2"
@@ -490,7 +521,7 @@ function Form({
   send,
   sending,
   prompt,
-  connect,
+  startSession,
 }: FormProps) {
   // States
   const [sendable, setSendable] = useState<boolean>(false);
@@ -537,7 +568,7 @@ function Form({
           onSubmit={async (e) => {
             setConnecting(true);
             try {
-              const result = await connect(e);
+              const result = await startSession(e);
               if (result) {
                 console.log("Connection successful.");
               }
