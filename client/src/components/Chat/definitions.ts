@@ -1,5 +1,6 @@
 // Resources
 import { type SetStateAction } from "react";
+import { type SetStorage } from "./hooks/useLocalStorage";
 
 export type ConnectEvent = (
   e: React.FormEvent<HTMLFormElement>
@@ -37,13 +38,14 @@ export interface WindowProps {
   /** Whether or not the window is currently in it's visible state. */
   open: boolean;
   /** The function that allows the visible state to be modified. */
-  setOpen: SetState<boolean>;
+  setOpen: SetStorage;
   /** Whether or not the terms and privacy policy notice should be displayed. */
   showNotice: boolean;
   /** The function that allows the notice state to be modified. */
-  setNotice: SetState<boolean>;
+  setNotice: SetStorage;
   /** Whether or not the window is currently in a loading state. */
-  loading: boolean;
+  chatLoading: boolean;
+  sessionLoading: boolean;
   /** The handler for submitting a message to the current session. */
   sendMessage: SendEvent;
   /** Whether or not the current user is sending a message. */
@@ -57,7 +59,10 @@ export interface WindowProps {
 }
 
 export interface FormProps
-  extends Omit<WindowProps, "open" | "setOpen" | "messages" | "loading"> {
+  extends Omit<
+    WindowProps,
+    "open" | "setOpen" | "messages" | "chatLoading" | "sessionLoading"
+  > {
   /** Whether or not the send form is visible. */
   active: boolean;
 }

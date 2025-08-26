@@ -6,6 +6,7 @@ import { io, Socket } from "socket.io-client";
 // Hooks
 import { useEffect, useRef, useState, useCallback } from "react";
 import useSound from "use-sound";
+import useLocalStorage from "./hooks/useLocalStorage";
 
 // Definitions
 import { Definitions } from ".";
@@ -25,43 +26,12 @@ import { IoIosArrowBack } from "react-icons/io";
 import { CgSpinner } from "react-icons/cg";
 
 /**
- * Fetches a specific value from the browser's local storage.
- * @param key The key of the value to find.
- * @param initial The initial value to set if not found.
- * @returns The value of the item.
- */
-function getValue(key: string, initial: string): string {
-  const exists = window.localStorage.getItem(key);
-
-  if (exists !== null) {
-    return exists;
-  } else {
-    window.localStorage.setItem(key, String(initial));
-    return String(initial);
-  }
-}
-
-/**
- * Sets a local storage value.
- * @param key The key of the value.
- * @param value The value to set.
- */
-function setValue(key: string, value: unknown): void {
-  window.localStorage.setItem(key, String(value));
-}
-
-/**
  * The base chat window.
  */
 export default function Chat({ visible = true }: Definitions.ChatProps) {
   // States
-  const [open, setOpen] = useState<boolean>(
-    Boolean(getValue("live-chat-open", "false"))
-  );
   const [loading, setLoading] = useState<boolean>(true);
-  const [notice, setNotice] = useState<boolean>(
-    Boolean(getValue("live-chat-notice-open", "true"))
-  );
+  const [sessionLoading, setSessionLoading] = useState<boolean>(true);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [sending, setSending] = useState<boolean>(false);
   const [session, setSession] = useState<string | null>(null);
@@ -73,6 +43,8 @@ export default function Chat({ visible = true }: Definitions.ChatProps) {
   const sessionExistsRef = useRef<boolean>(false);
 
   // Hooks
+  const [open, setOpen] = useLocalStorage("live-chat-open", false);
+  const [notice, setNotice] = useLocalStorage("live-chat-notice-open", true);
   const [playSend] = useSound(SendSound, { volume: 1 });
   const [playReceive] = useSound(ReceiveSound, { volume: 1 });
 
@@ -222,8 +194,9 @@ export default function Chat({ visible = true }: Definitions.ChatProps) {
       ).text();
       sessionExistsRef.current = exists === "true";
       if (exists === "true") {
-        establishConn();
+        await establishConn();
       }
+      setSessionLoading(false);
     })();
 
     return () => {
@@ -284,16 +257,24 @@ export default function Chat({ visible = true }: Definitions.ChatProps) {
     [playSend]
   );
 
+  /**
+   * Toggles the chat window's state.
+   */
+  const toggle = useCallback(() => {
+    setOpen(open === "true" ? "false" : "true");
+  }, [setOpen, open]);
+
   return (
     visible && (
       <>
-        {open && (
+        {open === "true" && (
           <Window
-            open={open}
+            open={open === "true"}
             setOpen={setOpen}
-            showNotice={notice}
+            showNotice={notice === "true"}
             setNotice={setNotice}
-            loading={loading}
+            chatLoading={loading}
+            sessionLoading={sessionLoading}
             sendMessage={postMessage}
             sending={sending}
             messages={messages}
@@ -305,15 +286,12 @@ export default function Chat({ visible = true }: Definitions.ChatProps) {
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}
           transition={{ duration: 0.05 }}
-          onClick={() => {
-            setOpen(!open);
-            setValue("live-chat-open", !open);
-          }}
+          onClick={toggle}
           className="text-lg font-bold fixed bottom-0 right-0 m-5 cursor-pointer bg-[#121212] p-4 rounded-full shadow-lg shadow-black/20 hover:scale-[107%] active:scale-90 transition-transform">
           <motion.div
             animate={{
-              rotate: open ? 90 : 0,
-              scale: open ? 1.1 : 1,
+              rotate: open === "true" ? 90 : 0,
+              scale: open === "true" ? 1.1 : 1,
             }}
             transition={{
               duration: 0.15,
@@ -322,7 +300,7 @@ export default function Chat({ visible = true }: Definitions.ChatProps) {
             }}
             className="relative">
             <AnimatePresence mode="wait">
-              {!open ? (
+              {!(open === "true") ? (
                 <motion.span
                   key="chatbox"
                   initial={{ opacity: 0 }}
@@ -357,7 +335,8 @@ function Window({
   setOpen,
   showNotice,
   setNotice,
-  loading,
+  chatLoading,
+  sessionLoading,
   sendMessage,
   sending,
   messages,
@@ -375,25 +354,24 @@ function Window({
             <IoIosArrowBack className="text-white/50 text-lg" />
           </button>
           <div className="flex justify-center items-center gap-2">
-            {!loading && (
+            {!chatLoading && (
               <CgSpinner className="text-white animate-spin text-lg" />
             )}
             <h2 className="text-white font-semibold text-[14px]">
-              {!loading ? "Waiting for Agent" : "Live Chat"}
+              {!chatLoading ? "Waiting for Agent" : "Live Chat"}
             </h2>
           </div>
         </div>
         <button
           className="cursor-pointer hover:bg-white/10 p-1 rounded-lg transition-colors"
           onClick={useCallback(() => {
-            setOpen(false);
-            setValue("live-chat-open", false);
+            setOpen("false");
           }, [setOpen])}>
           <IoClose className="text-white/50 text-xl" />
         </button>
       </div>
 
-      {!loading ? (
+      {!chatLoading ? (
         <div className="flex flex-col-reverse gap-3 p-4 grow-[1] overflow-y-auto">
           <div className="flex flex-col gap-3">
             {messages.map((message, index) => {
@@ -427,15 +405,17 @@ function Window({
         </div>
       )}
 
-      <Form
-        active={loading ? false : true}
-        showNotice={showNotice}
-        setNotice={setNotice}
-        sendMessage={sendMessage}
-        sending={sending}
-        prompt={prompt}
-        startSession={startSession}
-      />
+      {!sessionLoading && (
+        <Form
+          active={chatLoading ? false : true}
+          showNotice={showNotice}
+          setNotice={setNotice}
+          sendMessage={sendMessage}
+          sending={sending}
+          prompt={prompt}
+          startSession={startSession}
+        />
+      )}
     </motion.div>
   );
 }
@@ -585,8 +565,7 @@ function Form({
           <button
             type="button"
             onClick={() => {
-              setNotice(false);
-              setValue("live-chat-notice-open", false);
+              setNotice("false");
             }}
             className="cursor-pointer hover:bg-white/10 p-1 rounded-lg transition-colors">
             <IoClose className="text-white text-xl" />
