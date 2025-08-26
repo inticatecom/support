@@ -1,16 +1,23 @@
 // Resources
 import { useCallback, useState } from "react";
 
+/**
+ * Allows you to fetch and set a local storage item.
+ * @param key The key of the local storage item.
+ * @param initialValue The initial value to set for the item.
+ * @returns The methods to manipulate the local storage item.
+ */
 export default function useLocalStorage(key: string, initialValue: unknown) {
   const [storedValue, setStoredValue] = useState<string>(() => {
-    if (typeof window === "undefined") return initialValue;
+    const initial = String(initialValue);
+    if (typeof window === "undefined") return initial;
 
     try {
       const item = window.localStorage.getItem(key);
-      return item || initialValue;
+      return item || initial;
     } catch (e) {
       console.error(e);
-      return initialValue;
+      return initial;
     }
   });
 

@@ -117,7 +117,7 @@ export default function Chat({ visible = true }: Definitions.ChatProps) {
             sessionRef.current = id;
           });
 
-          socket.on("server:started", (time: string) => {
+          socket.once("server:started", (time: string) => {
             addMessage({
               content: `Chat started at ${new Date(time).toLocaleTimeString(
                 undefined,
@@ -460,9 +460,7 @@ function Form({
    * The event for when the client triggers the session to be started.
    * @param e The form event.
    */
-  const postMessage = useCallback<
-    (e: React.FormEvent<HTMLFormElement>) => void
-  >(
+  const connect = useCallback<(e: React.FormEvent<HTMLFormElement>) => void>(
     async (e) => {
       setConnecting(true);
       try {
@@ -486,12 +484,24 @@ function Form({
     setSendable(e.target.value.length >= 3);
   }, []);
 
+  /**
+   * Triggers when the user submits the send message form.
+   * @param e The form event.
+   */
+  const send = useCallback<(e: React.FormEvent<HTMLFormElement>) => void>(
+    (e) => {
+      sendMessage(e);
+      setSendable(false);
+    },
+    [sendMessage]
+  );
+
   return (
     <div className="self-end w-full flex flex-col justify-end gap-3 pb-4 px-4">
       {!prompt && (
         <form
           className={`flex flex-col w-full gap-1 ${!active && "opacity-0"}`}
-          onSubmit={sendMessage}>
+          onSubmit={send}>
           <label className="rounded-xl bg-white/10 text-white p-3 w-full outline-offset-[2.7px] outline-white/30 focus-within:outline-[2.5] flex justify-between items-center gap-4 cursor-text has-[:disabled]:text-white/50">
             <input
               className="outline-none w-full disabled:cursor-not-allowed"
@@ -518,7 +528,7 @@ function Form({
       {prompt && (
         <form
           className="flex flex-col rounded-xl p-4 gap-2 bg-white/2 border-1 border-white/10"
-          onSubmit={postMessage}>
+          onSubmit={connect}>
           <label className="flex flex-col gap-1 text-white">
             Full Name
             <input
