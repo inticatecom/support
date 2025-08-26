@@ -4,88 +4,20 @@ import moment from "moment";
 import { io, Socket } from "socket.io-client";
 
 // Hooks
-import {
-  useEffect,
-  useRef,
-  useState,
-  useCallback,
-  type SetStateAction,
-} from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import useSound from "use-sound";
+
+// Definitions
+import { Definitions } from ".";
+type ChatMessage = Definitions.Message | Definitions.SystemMessage;
 
 // Settings
 const BACKEND_URL_BASE: string = "http://localhost:3000";
 const CONNECTION_TIMEOUT: number = 10;
 
-// Types
-type ConnectEvent = (e: React.FormEvent<HTMLFormElement>) => Promise<boolean>;
-type SendEvent = (e: React.FormEvent<HTMLFormElement>) => void;
-type SystemMessage = Pick<Message, "content" | "time">;
-type SetState<T> = React.Dispatch<SetStateAction<T>>;
-
-// Interfaces
-// interface ChatProps {
-//   /** Your API key that allows the component to interact with the API. */
-//   auth: string;
-//   /** Any additional options to attach to the chat component. */
-//   options?: {
-//     /** Whether or not the chat is in debug mode. */
-//     debug?: boolean;
-//   };
-// }
-interface BubbleProps extends Pick<Message, "session" | "name" | "time"> {
-  /** The color scheme of the chat bubble. */
-  mode?: "primary" | "secondary";
-  /** The content of the message. */
-  message: string;
-  /** Whether or not the message is the most recent one in the list. */
-  mostRecent?: boolean;
-}
-interface WindowProps {
-  /** Whether or not the window is currently in it's visible state. */
-  open: boolean;
-  /** The function that allows the visible state to be modified. */
-  setOpen: SetState<boolean>;
-  /** Whether or not the terms and privacy policy notice should be displayed. */
-  showNotice: boolean;
-  /** The function that allows the notice state to be modified. */
-  setNotice: SetState<boolean>;
-  /** Whether or not the window is currently in a loading state. */
-  loading: boolean;
-  /** The handler for submitting a message to the current session. */
-  sendMessage: SendEvent;
-  /** Whether or not the current user is sending a message. */
-  sending: boolean;
-  /** The messages that are present in the current session. */
-  messages: (Message | SystemMessage)[];
-  /** Whether or not the initial session details form is shown. */
-  prompt: boolean;
-  /** The event that triggers when the socket will attempt a connection. */
-  startSession: ConnectEvent;
-}
-interface FormProps
-  extends Omit<WindowProps, "open" | "setOpen" | "messages" | "loading"> {
-  /** Whether or not the send form is visible. */
-  active: boolean;
-}
-interface Message {
-  /** The session ID from which the message was sent from. */
-  session: string;
-  /** The display name of the user who sent the message. */
-  name: string;
-  /** The content of the message (ie. the text that was sent in the message). */
-  content: string;
-  /** The time the message was sent at. */
-  time: Date;
-  /** Whether or not the message was sent by the current user. */
-  local?: boolean;
-  /** Was the message already read in a past session meaning that the message is being loaded from the database, not a new message. */
-  initial?: boolean;
-}
-
 // Sounds
-import SendSound from "../assets/sounds/send.mp3?url";
-import ReceiveSound from "../assets/sounds/receive.mp3?url";
+import SendSound from "./assets/sounds/send.mp3?url";
+import ReceiveSound from "./assets/sounds/receive.mp3?url";
 
 // Icons
 import { IoChatbox, IoClose, IoSend } from "react-icons/io5";
@@ -121,7 +53,7 @@ function setValue(key: string, value: unknown): void {
 /**
  * The base chat window.
  */
-export default function Chat() {
+export default function Chat({ visible = true }: Definitions.ChatProps) {
   // States
   const [open, setOpen] = useState<boolean>(
     Boolean(getValue("live-chat-open", "false"))
@@ -130,7 +62,7 @@ export default function Chat() {
   const [notice, setNotice] = useState<boolean>(
     Boolean(getValue("live-chat-notice-open", "true"))
   );
-  const [messages, setMessages] = useState<(Message | SystemMessage)[]>([]);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [sending, setSending] = useState<boolean>(false);
   const [session, setSession] = useState<string | null>(null);
   const [showPrompt, setShowPrompt] = useState<boolean>(true);
@@ -200,11 +132,11 @@ export default function Chat() {
             });
           });
 
-          socket.on("server:message", (message: SystemMessage) =>
+          socket.on("server:message", (message: Definitions.SystemMessage) =>
             addMessage(message)
           );
 
-          socket.on("message:receive", (message: Message) => {
+          socket.on("message:receive", (message: Definitions.Message) => {
             addMessage(message);
             if (!message.initial && message.session !== sessionRef.current)
               playReceive();
@@ -234,7 +166,7 @@ export default function Chat() {
          * Adds a message and then sorts by the most recently sent message.
          * @param message The message to append. Either a user or system message.
          */
-        function addMessage(message: Message | SystemMessage): void {
+        function addMessage(message: ChatMessage): void {
           /**
            * Combines and sorts the old data and the newly appended value by date.
            * @param previous The current data.
@@ -242,9 +174,9 @@ export default function Chat() {
            * @returns The sorted data.
            */
           function sort(
-            previous: (Message | SystemMessage)[],
-            append: Message | SystemMessage
-          ): (Message | SystemMessage)[] {
+            previous: ChatMessage[],
+            append: ChatMessage
+          ): ChatMessage[] {
             const newMessages = [...previous, append];
             return newMessages.sort(
               (a, b) => a.time.getTime() - b.time.getTime()
@@ -253,7 +185,7 @@ export default function Chat() {
 
           setMessages((prev) => {
             if ("session" in message) {
-              const msg: Message = {
+              const msg: Definitions.Message = {
                 ...message,
                 session: message.session,
                 time: new Date(message.time),
@@ -262,7 +194,7 @@ export default function Chat() {
 
               return sort(prev, msg);
             } else {
-              const systemMsg: SystemMessage = {
+              const systemMsg: Definitions.SystemMessage = {
                 ...message,
                 time: new Date(message.time),
               };
@@ -353,65 +285,67 @@ export default function Chat() {
   );
 
   return (
-    <>
-      {open && (
-        <Window
-          open={open}
-          setOpen={setOpen}
-          showNotice={notice}
-          setNotice={setNotice}
-          loading={loading}
-          sendMessage={postMessage}
-          sending={sending}
-          messages={messages}
-          startSession={startSession}
-          prompt={showPrompt}
-        />
-      )}
-      <motion.button
-        initial={{ scale: 0 }}
-        animate={{ scale: 1 }}
-        transition={{ duration: 0.05 }}
-        onClick={() => {
-          setOpen(!open);
-          setValue("live-chat-open", !open);
-        }}
-        className="text-lg font-bold fixed bottom-0 right-0 m-5 cursor-pointer bg-[#121212] p-4 rounded-full shadow-lg shadow-black/20 hover:scale-[107%] active:scale-90 transition-transform">
-        <motion.div
-          animate={{
-            rotate: open ? 90 : 0,
-            scale: open ? 1.1 : 1,
+    visible && (
+      <>
+        {open && (
+          <Window
+            open={open}
+            setOpen={setOpen}
+            showNotice={notice}
+            setNotice={setNotice}
+            loading={loading}
+            sendMessage={postMessage}
+            sending={sending}
+            messages={messages}
+            startSession={startSession}
+            prompt={showPrompt}
+          />
+        )}
+        <motion.button
+          initial={{ scale: 0 }}
+          animate={{ scale: 1 }}
+          transition={{ duration: 0.05 }}
+          onClick={() => {
+            setOpen(!open);
+            setValue("live-chat-open", !open);
           }}
-          transition={{
-            duration: 0.15,
-            ease: "easeInOut",
-            stiffness: 200,
-          }}
-          className="relative">
-          <AnimatePresence mode="wait">
-            {!open ? (
-              <motion.span
-                key="chatbox"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.05 }}>
-                <IoChatbox className="text-white text-2xl" />
-              </motion.span>
-            ) : (
-              <motion.span
-                key="close"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.05 }}>
-                <IoClose className="text-white text-2xl" />
-              </motion.span>
-            )}
-          </AnimatePresence>
-        </motion.div>
-      </motion.button>
-    </>
+          className="text-lg font-bold fixed bottom-0 right-0 m-5 cursor-pointer bg-[#121212] p-4 rounded-full shadow-lg shadow-black/20 hover:scale-[107%] active:scale-90 transition-transform">
+          <motion.div
+            animate={{
+              rotate: open ? 90 : 0,
+              scale: open ? 1.1 : 1,
+            }}
+            transition={{
+              duration: 0.15,
+              ease: "easeInOut",
+              stiffness: 200,
+            }}
+            className="relative">
+            <AnimatePresence mode="wait">
+              {!open ? (
+                <motion.span
+                  key="chatbox"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.05 }}>
+                  <IoChatbox className="text-white text-2xl" />
+                </motion.span>
+              ) : (
+                <motion.span
+                  key="close"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.05 }}>
+                  <IoClose className="text-white text-2xl" />
+                </motion.span>
+              )}
+            </AnimatePresence>
+          </motion.div>
+        </motion.button>
+      </>
+    )
   );
 }
 
@@ -429,7 +363,7 @@ function Window({
   messages,
   startSession,
   prompt,
-}: WindowProps) {
+}: Definitions.WindowProps) {
   return (
     <motion.div
       initial={{ scale: 0 }}
@@ -517,7 +451,7 @@ function Form({
   sending,
   prompt,
   startSession,
-}: FormProps) {
+}: Definitions.FormProps) {
   // States
   const [sendable, setSendable] = useState<boolean>(false);
   const [connecting, setConnecting] = useState<boolean>(false);
@@ -656,7 +590,13 @@ function Form({
 /**
  * A message display containing the author, message, and time it was sent at.
  */
-function Bubble({ mode, name, message, time, mostRecent }: BubbleProps) {
+function Bubble({
+  mode,
+  name,
+  message,
+  time,
+  mostRecent,
+}: Definitions.BubbleProps) {
   return (
     <div
       className={`flex flex-col w-11/12 ${mode === "secondary" && "self-end"}`}>
