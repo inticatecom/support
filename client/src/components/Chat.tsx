@@ -53,7 +53,7 @@ interface WindowProps {
   /** Whether or not the window is currently in a loading state. */
   loading: boolean;
   /** The handler for submitting a message to the current session. */
-  send: SendEvent;
+  sendMessage: SendEvent;
   /** Whether or not the current user is sending a message. */
   sending: boolean;
   /** The messages that are present in the current session. */
@@ -98,14 +98,14 @@ import { CgSpinner } from "react-icons/cg";
  * @param initial The initial value to set if not found.
  * @returns The value of the item.
  */
-function getValue(key: string, initial?: unknown): boolean {
+function getValue(key: string, initial: string): string {
   const exists = window.localStorage.getItem(key);
 
   if (exists !== null) {
-    return exists === "true";
+    return exists;
   } else {
-    window.localStorage.setItem(key, String(initial) || "false");
-    return false;
+    window.localStorage.setItem(key, String(initial));
+    return String(initial);
   }
 }
 
@@ -123,10 +123,12 @@ function setValue(key: string, value: unknown): void {
  */
 export default function Chat() {
   // States
-  const [open, setOpen] = useState<boolean>(getValue("live-chat-open", false));
+  const [open, setOpen] = useState<boolean>(
+    Boolean(getValue("live-chat-open", "false"))
+  );
   const [loading, setLoading] = useState<boolean>(true);
   const [notice, setNotice] = useState<boolean>(
-    getValue("live-chat-notice-open", true)
+    Boolean(getValue("live-chat-notice-open", "true"))
   );
   const [messages, setMessages] = useState<(Message | SystemMessage)[]>([]);
   const [sending, setSending] = useState<boolean>(false);
@@ -149,131 +151,136 @@ export default function Chat() {
    */
   const establishConn = useCallback<
     (params?: Record<string, unknown>) => Promise<boolean>
-  >(async (params) => {
-    return new Promise((resolve, reject) => {
-      if (socketRef.current) socketRef.current.disconnect(); // If the socket already exists, disconnect it to allow for a new connection.
+  >(
+    async (params) => {
+      return new Promise((resolve, reject) => {
+        if (socketRef.current) socketRef.current.disconnect(); // If the socket already exists, disconnect it to allow for a new connection.
 
-      // Make sure that if the params do not exist, the session exists, otherwise bail out early.
-      if (!params && !sessionExistsRef.current) {
-        resolve(false);
-        return;
-      }
-
-      // Create Socket.io client.
-      const socket = io(BACKEND_URL_BASE, {
-        withCredentials: true,
-        query: params,
-      });
-
-      socketRef.current = socket; // Assign socket reference the newly created socket instance.
-
-      // Set timeout for connection time.
-      const timeout = setTimeout(() => {
-        socket.disconnect();
-        console.log("disconnected");
-        reject(new Error("Socket connection exceeded timeout length."));
-      }, CONNECTION_TIMEOUT * 1000);
-
-      // Connect listeners and run logic to tell user socket has successfully connected.
-      socket.once("connect", () => {
-        console.log("connected");
-        clearTimeout(timeout);
-
-        socket.once("session:created", (id: string) => {
-          setSession(id);
-          sessionRef.current = id;
-        });
-
-        socket.on("server:started", (time: string) => {
-          addMessage({
-            content: `Chat started at ${new Date(time).toLocaleTimeString(
-              undefined,
-              {
-                hour: "2-digit",
-                minute: "2-digit",
-                hour12: true,
-                hourCycle: "h12",
-              }
-            )}`,
-            time: new Date(time),
-          });
-        });
-
-        socket.on("server:message", (message: SystemMessage) =>
-          addMessage(message)
-        );
-
-        socket.on("message:receive", (message: Message) => {
-          addMessage(message);
-          if (!message.initial && message.session !== sessionRef.current)
-            playReceive();
-        });
-
-        setShowPrompt(false);
-        setLoading(false);
-
-        resolve(true); // Tell the client that the connection between the client and the socket has been successful.
-      });
-
-      // Reject promise and clear timeout if socket refuses to connect.
-      socket.once("connect_error", (e) => {
-        clearTimeout(timeout);
-        console.error(e);
-
-        reject(e);
-      });
-
-      // Clear messages on socket disconnection.
-      socket.once("disconnect", () => {
-        console.log("cleared timeout on disconnect");
-        clearTimeout(timeout);
-        setMessages([]);
-      });
-
-      /**
-       * Adds a message and then sorts by the most recently sent message.
-       * @param message The message to append. Either a user or system message.
-       */
-      function addMessage(message: Message | SystemMessage): void {
-        /**
-         * Combines and sorts the old data and the newly appended value by date.
-         * @param previous The current data.
-         * @param append The new value.
-         * @returns The sorted data.
-         */
-        function sort(
-          previous: (Message | SystemMessage)[],
-          append: Message | SystemMessage
-        ): (Message | SystemMessage)[] {
-          const newMessages = [...previous, append];
-          return newMessages.sort(
-            (a, b) => a.time.getTime() - b.time.getTime()
-          );
+        // Make sure that if the params do not exist, the session exists, otherwise bail out early.
+        if (!params && !sessionExistsRef.current) {
+          resolve(false);
+          return;
         }
 
-        setMessages((prev) => {
-          if ("session" in message) {
-            const msg: Message = {
-              ...message,
-              session: message.session,
-              time: new Date(message.time),
-              local: message.session === sessionRef.current,
-            };
-
-            return sort(prev, msg);
-          } else {
-            const systemMsg: SystemMessage = {
-              ...message,
-              time: new Date(message.time),
-            };
-
-            return sort(prev, systemMsg);
-          }
+        // Create Socket.io client.
+        const socket = io(BACKEND_URL_BASE, {
+          withCredentials: true,
+          query: params,
         });
-      }
-    });
-  }, []);
 
+        socketRef.current = socket; // Assign socket reference the newly created socket instance.
+
+        // Set timeout for connection time.
+        const timeout = setTimeout(() => {
+          socket.disconnect();
+          reject(new Error("Socket connection exceeded timeout length."));
+        }, CONNECTION_TIMEOUT * 1000);
+
+        // Connect listeners and run logic to tell user socket has successfully connected.
+        socket.once("connect", () => {
+          clearTimeout(timeout);
+
+          socket.once("session:created", (id: string) => {
+            setSession(id);
+            sessionRef.current = id;
+          });
+
+          socket.on("server:started", (time: string) => {
+            addMessage({
+              content: `Chat started at ${new Date(time).toLocaleTimeString(
+                undefined,
+                {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                  hour12: true,
+                  hourCycle: "h12",
+                }
+              )}`,
+              time: new Date(time),
+            });
+          });
+
+          socket.on("server:message", (message: SystemMessage) =>
+            addMessage(message)
+          );
+
+          socket.on("message:receive", (message: Message) => {
+            addMessage(message);
+            if (!message.initial && message.session !== sessionRef.current)
+              playReceive();
+          });
+
+          setShowPrompt(false);
+          setLoading(false);
+
+          resolve(true); // Tell the client that the connection between the client and the socket has been successful.
+        });
+
+        // Reject promise and clear timeout if socket refuses to connect.
+        socket.once("connect_error", (e) => {
+          clearTimeout(timeout);
+          console.error(e);
+
+          reject(e);
+        });
+
+        // Clear messages on socket disconnection.
+        socket.once("disconnect", () => {
+          clearTimeout(timeout);
+          setMessages([]);
+        });
+
+        /**
+         * Adds a message and then sorts by the most recently sent message.
+         * @param message The message to append. Either a user or system message.
+         */
+        function addMessage(message: Message | SystemMessage): void {
+          /**
+           * Combines and sorts the old data and the newly appended value by date.
+           * @param previous The current data.
+           * @param append The new value.
+           * @returns The sorted data.
+           */
+          function sort(
+            previous: (Message | SystemMessage)[],
+            append: Message | SystemMessage
+          ): (Message | SystemMessage)[] {
+            const newMessages = [...previous, append];
+            return newMessages.sort(
+              (a, b) => a.time.getTime() - b.time.getTime()
+            );
+          }
+
+          setMessages((prev) => {
+            if ("session" in message) {
+              const msg: Message = {
+                ...message,
+                session: message.session,
+                time: new Date(message.time),
+                local: message.session === sessionRef.current,
+              };
+
+              return sort(prev, msg);
+            } else {
+              const systemMsg: SystemMessage = {
+                ...message,
+                time: new Date(message.time),
+              };
+
+              return sort(prev, systemMsg);
+            }
+          });
+        }
+      });
+    },
+    [playReceive]
+  );
+
+  /**
+   * Make an initial request to the backend route that lets the client know if there is already a session present.
+   * We can only do this on the backend as the cookie used to stored the session makes use of the HTTP-only attribute
+   * making it unaccessible by JavaScript on the client.
+   */
   useEffect(() => {
     (async () => {
       const exists = await (
@@ -285,7 +292,6 @@ export default function Chat() {
       if (exists === "true") {
         establishConn();
       }
-      console.log("fetched");
     })();
 
     return () => {
@@ -293,42 +299,58 @@ export default function Chat() {
     };
   }, [establishConn]);
 
+  /**
+   * Update the session reference whenever the session state changes. We do this to prevent re-rendering
+   * for form submissions when the session is changed, but we still need the state to maintain a persistent display
+   * to the client's interface.
+   */
   useEffect(() => {
     sessionRef.current = session;
   }, [session]);
 
   /**
-   * Connects and initializes the socket.
+   * The event for when the client submits the details form which will then initiate the session by connecting to the socket in the backend.
    * @param e The form event.
+   * @returns A boolean representing whether or not the operation succeeded.
    */
-  async function startSession(
-    e: React.FormEvent<HTMLFormElement>
-  ): Promise<boolean> {
-    e.preventDefault();
+  const startSession = useCallback<
+    (e: React.FormEvent<HTMLFormElement>) => Promise<boolean>
+  >(
+    async (e) => {
+      e.preventDefault();
 
-    const data = new FormData(e.currentTarget);
-    return await establishConn({
-      name: data.get("name"),
-      email: data.get("email"),
-    });
-  }
+      const entries = new FormData(e.currentTarget);
+      return await establishConn({
+        name: entries.get("name"),
+        email: entries.get("email"),
+      });
+    },
+    [establishConn]
+  );
 
   /**
-   * Triggers when the user submits a message to the chat's form.
+   * The event for when the client sends a message to the active session.
    * @param e The form event.
    */
-  function sendMsg(e: React.FormEvent<HTMLFormElement>): void {
-    e.preventDefault();
+  const postMessage = useCallback<
+    (e: React.FormEvent<HTMLFormElement>) => void
+  >(
+    (e) => {
+      e.preventDefault();
 
-    if (!socketRef.current) return;
-    setSending(true);
+      if (!socketRef.current) return;
+      setSending(true);
 
-    const data = new FormData(e.currentTarget);
-    socketRef.current.emit("message:create", data.get("message"));
-    e.currentTarget.reset();
-    playSend();
-    setSending(false);
-  }
+      const entries = new FormData(e.currentTarget);
+
+      socketRef.current.emit("message:create", entries.get("message"));
+      e.currentTarget.reset();
+
+      playSend();
+      setSending(false);
+    },
+    [playSend]
+  );
 
   return (
     <>
@@ -339,7 +361,7 @@ export default function Chat() {
           showNotice={notice}
           setNotice={setNotice}
           loading={loading}
-          send={sendMsg}
+          sendMessage={postMessage}
           sending={sending}
           messages={messages}
           startSession={startSession}
@@ -402,7 +424,7 @@ function Window({
   showNotice,
   setNotice,
   loading,
-  send,
+  sendMessage,
   sending,
   messages,
   startSession,
@@ -475,7 +497,7 @@ function Window({
         active={loading ? false : true}
         showNotice={showNotice}
         setNotice={setNotice}
-        send={send}
+        sendMessage={sendMessage}
         sending={sending}
         prompt={prompt}
         startSession={startSession}
@@ -518,7 +540,7 @@ function Form({
   active,
   showNotice,
   setNotice,
-  send,
+  sendMessage,
   sending,
   prompt,
   startSession,
@@ -532,7 +554,7 @@ function Form({
       {!prompt && (
         <form
           className={`flex flex-col w-full gap-1 ${!active && "opacity-0"}`}
-          onSubmit={send}>
+          onSubmit={sendMessage}>
           <label className="rounded-xl bg-white/10 text-white p-3 w-full outline-offset-[2.7px] outline-white/30 focus-within:outline-[2.5] flex justify-between items-center gap-4 cursor-text has-[:disabled]:text-white/50">
             <input
               className="outline-none w-full disabled:cursor-not-allowed"
@@ -568,10 +590,7 @@ function Form({
           onSubmit={async (e) => {
             setConnecting(true);
             try {
-              const result = await startSession(e);
-              if (result) {
-                console.log("Connection successful.");
-              }
+              await startSession(e);
             } catch (e) {
               console.error(e);
             } finally {
