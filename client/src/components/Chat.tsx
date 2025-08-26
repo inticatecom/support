@@ -451,10 +451,10 @@ function Window({
         </div>
         <button
           className="cursor-pointer hover:bg-white/10 p-1 rounded-lg transition-colors"
-          onClick={() => {
+          onClick={useCallback(() => {
             setOpen(false);
             setValue("live-chat-open", false);
-          }}>
+          }, [setOpen])}>
           <IoClose className="text-white/50 text-xl" />
         </button>
       </div>
@@ -507,33 +507,6 @@ function Window({
 }
 
 /**
- * A message display containing the author, message, and time it was sent at.
- */
-function Bubble({ mode, name, message, time, mostRecent }: BubbleProps) {
-  return (
-    <div
-      className={`flex flex-col w-11/12 ${mode === "secondary" && "self-end"}`}>
-      <p
-        className={`text-white p-3 rounded-lg w-full hyphens-auto break-words ${
-          !mode || mode === "primary"
-            ? "bg-white/10"
-            : "bg-blue-500/10 self-end"
-        }`}>
-        {message}
-      </p>
-      {mostRecent && (
-        <p
-          className={`text-[14px] text-white/30 w-full ${
-            mode === "secondary" ? "self-end text-right mr-2" : "ml-2"
-          }`}>
-          {name} • {moment(time).fromNow()}
-        </p>
-      )}
-    </div>
-  );
-}
-
-/**
  * The form that allows users to submit a message to the chat.
  */
 function Form({
@@ -549,6 +522,36 @@ function Form({
   const [sendable, setSendable] = useState<boolean>(false);
   const [connecting, setConnecting] = useState<boolean>(false);
 
+  /**
+   * The event for when the client triggers the session to be started.
+   * @param e The form event.
+   */
+  const postMessage = useCallback<
+    (e: React.FormEvent<HTMLFormElement>) => void
+  >(
+    async (e) => {
+      setConnecting(true);
+      try {
+        await startSession(e);
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setConnecting(false);
+      }
+    },
+    [startSession]
+  );
+
+  /**
+   * The event for when the client enters or removes text from the message input.
+   * @param e The form event.
+   */
+  const onMessageChange = useCallback<
+    (e: React.ChangeEvent<HTMLInputElement>) => void
+  >((e) => {
+    setSendable(e.target.value.length >= 3);
+  }, []);
+
   return (
     <div className="self-end w-full flex flex-col justify-end gap-3 pb-4 px-4">
       {!prompt && (
@@ -562,13 +565,7 @@ function Form({
               placeholder="Ask a question ..."
               disabled={sending && sendable}
               name="message"
-              onChange={(e) => {
-                if (e.target.value.length >= 3) {
-                  setSendable(true);
-                } else {
-                  setSendable(false);
-                }
-              }}
+              onChange={onMessageChange}
             />
             <button
               type="submit"
@@ -587,16 +584,7 @@ function Form({
       {prompt && (
         <form
           className="flex flex-col rounded-xl p-4 gap-2 bg-white/2 border-1 border-white/10"
-          onSubmit={async (e) => {
-            setConnecting(true);
-            try {
-              await startSession(e);
-            } catch (e) {
-              console.error(e);
-            } finally {
-              setConnecting(false);
-            }
-          }}>
+          onSubmit={postMessage}>
           <label className="flex flex-col gap-1 text-white">
             Full Name
             <input
@@ -660,6 +648,33 @@ function Form({
             <IoClose className="text-white text-xl" />
           </button>
         </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * A message display containing the author, message, and time it was sent at.
+ */
+function Bubble({ mode, name, message, time, mostRecent }: BubbleProps) {
+  return (
+    <div
+      className={`flex flex-col w-11/12 ${mode === "secondary" && "self-end"}`}>
+      <p
+        className={`text-white p-3 rounded-lg w-full hyphens-auto break-words ${
+          !mode || mode === "primary"
+            ? "bg-white/10"
+            : "bg-blue-500/10 self-end"
+        }`}>
+        {message}
+      </p>
+      {mostRecent && (
+        <p
+          className={`text-[14px] text-white/30 w-full ${
+            mode === "secondary" ? "self-end text-right mr-2" : "ml-2"
+          }`}>
+          {name} • {moment(time).fromNow()}
+        </p>
       )}
     </div>
   );
