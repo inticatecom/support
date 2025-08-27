@@ -6,7 +6,9 @@ export type ConnectEvent = (
   e: React.FormEvent<HTMLFormElement>
 ) => Promise<boolean>;
 
-export type SendEvent = (e: React.FormEvent<HTMLFormElement>) => void;
+export type SendEvent = (
+  e: React.FormEvent<HTMLFormElement>
+) => Promise<boolean>;
 
 export type SystemMessage = Pick<Message, "content" | "time">;
 

@@ -38,7 +38,6 @@ export default function Socket(app: RequestListener, cors: CorsOptions) {
 
   io.on("connection", async (socket) => {
     const session = socket.request.session; // The session ID received when the user connects to the socket.
-    console.log(session);
 
     // Make sure the session exists, otherwise close connection and return.
     if (!session) {
@@ -82,7 +81,11 @@ export default function Socket(app: RequestListener, cors: CorsOptions) {
     socket.emit("server:started", ticket.time); // Tell the client when the session started at.
 
     const messages = await getRecent(); // Fetch the last 100 messages in the chat.
-    debug.success(`Session '${session.id}' has connected to socket.`);
+    debug.success(
+      `Session '${session.id}' (${String(
+        session.email
+      )}) has connected to socket.`
+    );
 
     // Send recent messages to client.
     messages.forEach((message) => {
@@ -92,20 +95,37 @@ export default function Socket(app: RequestListener, cors: CorsOptions) {
       });
     });
 
-    socket.on("message:create", async (message: string) => {
-      if (message.length < 3) return;
+    socket.on(
+      "message:create",
+      async (message: string, callback: (error?: string) => void) => {
+        if (message.length < 3) {
+          callback("Message too short.");
+          return;
+        }
 
-      const msg: StoredMessage = {
-        session: session.id,
-        name: session.name as string,
-        content: message,
-        time: new Date().toISOString(),
-      };
+        try {
+          const msg: StoredMessage = {
+            session: session.id,
+            name: session.name as string,
+            content: message,
+            time: new Date().toISOString(),
+          };
 
-      await client.rPush(`room:${session.id}:messages`, JSON.stringify(msg));
-      socket.emit("message:receive", msg);
-      console.log(msg);
-    });
+          await client.rPush(
+            `room:${session.id}:messages`,
+            JSON.stringify(msg)
+          );
+          socket.emit("message:receive", msg);
+
+          callback();
+        } catch (e) {
+          debug.error(String(e));
+
+          callback("Internal server error.");
+          return;
+        }
+      }
+    );
 
     socket.on("disconnect", async () => {
       await socket.leave(session.id); // Leave the room when the user signals to disconnect from the socket.

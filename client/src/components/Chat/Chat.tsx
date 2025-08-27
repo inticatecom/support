@@ -1,5 +1,5 @@
 // Resources
-import { motion, AnimatePresence } from "motion/react";
+import { motion, AnimatePresence, useAnimate } from "motion/react";
 import moment from "moment";
 import { io, Socket } from "socket.io-client";
 
@@ -238,21 +238,38 @@ export default function Chat({ visible = true }: Definitions.ChatProps) {
    * @param e The form event.
    */
   const postMessage = useCallback<
-    (e: React.FormEvent<HTMLFormElement>) => void
+    (e: React.FormEvent<HTMLFormElement>) => Promise<boolean>
   >(
-    (e) => {
+    async (e) => {
       e.preventDefault();
 
-      if (!socketRef.current) return;
-      setSending(true);
+      const form = e.currentTarget;
+      return new Promise((resolve) => {
+        if (!socketRef.current) {
+          resolve(false);
+          return;
+        }
 
-      const entries = new FormData(e.currentTarget);
+        setSending(true);
+        const entries = new FormData(form);
 
-      socketRef.current.emit("message:create", entries.get("message"));
-      e.currentTarget.reset();
+        socketRef.current.emit(
+          "message:create",
+          entries.get("message"),
+          (error?: string) => {
+            setSending(false);
 
-      playSend();
-      setSending(false);
+            if (error) {
+              resolve(false);
+              return;
+            }
+
+            form.reset();
+            playSend();
+            resolve(true);
+          }
+        );
+      });
     },
     [playSend]
   );
@@ -436,6 +453,9 @@ function Form({
   const [sendable, setSendable] = useState<boolean>(false);
   const [connecting, setConnecting] = useState<boolean>(false);
 
+  // Hooks
+  const [errorScope, playError] = useAnimate();
+
   /**
    * The event for when the client triggers the session to be started.
    * @param e The form event.
@@ -468,12 +488,32 @@ function Form({
    * Triggers when the user submits the send message form.
    * @param e The form event.
    */
-  const send = useCallback<(e: React.FormEvent<HTMLFormElement>) => void>(
-    (e) => {
-      sendMessage(e);
+  const send = useCallback<
+    (e: React.FormEvent<HTMLFormElement>) => Promise<void>
+  >(
+    async (e) => {
+      e.preventDefault();
+
+      if (!sendable) {
+        playError(
+          errorScope.current,
+          { rotate: [0, 5, -5, 0] },
+          { duration: 0.15, ease: "easeInOut" }
+        );
+        return;
+      }
+
+      if (!(await sendMessage(e))) {
+        playError(
+          errorScope.current,
+          { rotate: [0, 5, -5, 0] },
+          { duration: 0.15, ease: "easeInOut" }
+        );
+      }
+
       setSendable(false);
     },
-    [sendMessage]
+    [sendMessage, sendable, playError, errorScope]
   );
 
   return (
@@ -482,19 +522,20 @@ function Form({
         <form
           className={`flex flex-col w-full gap-1 ${!active && "opacity-0"}`}
           onSubmit={send}>
-          <label className="rounded-xl bg-white/10 text-white p-3 w-full outline-offset-[2.7px] outline-white/30 focus-within:outline-[2.5] flex justify-between items-center gap-4 cursor-text has-[:disabled]:text-white/50">
+          <label
+            ref={errorScope}
+            className="rounded-xl bg-white/10 text-white p-3 w-full outline-offset-[2.7px] outline-white/30 focus-within:outline-[2.5] flex justify-between items-center gap-4 cursor-text has-[:disabled]:text-white/50">
             <input
               className="outline-none w-full disabled:cursor-not-allowed"
               type="text"
               placeholder="Ask a question ..."
-              disabled={sending && sendable}
+              disabled={sending}
               name="message"
               onChange={onMessageChange}
             />
             <button
               type="submit"
-              className={sendable ? "cursor-pointer" : "cursor-not-allowed"}
-              disabled={!sendable}>
+              className={sendable ? "cursor-pointer" : "cursor-not-allowed"}>
               {!sending ? (
                 <IoSend className={sendable ? "text-white" : "text-white/30"} />
               ) : (
