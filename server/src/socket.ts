@@ -3,27 +3,7 @@ import { Server } from "socket.io";
 import { createServer, RequestListener } from "http";
 import { debug } from "./lib/Debug";
 import { CorsOptions } from "cors";
-import { client } from ".";
-
-// Interfaces
-interface StoredMessage {
-  session: string;
-  name: string;
-  content: string;
-  time: string;
-}
-interface SessionInfo {
-  state: boolean;
-  time: string;
-}
-
-declare module "http" {
-  interface IncomingMessage {
-    session?: import("express-session").Session &
-      Partial<import("express-session").SessionData> &
-      Record<string, unknown>;
-  }
-}
+import { UserSession } from "./lib/Session";
 
 /**
  * The base initializer for the Socket.io server.
@@ -31,122 +11,143 @@ declare module "http" {
  * @param cors The CORS policy options.
  */
 export default function Socket(app: RequestListener, cors: CorsOptions) {
+  // Server Setup
   const server = createServer(app);
   const io = new Server(server, {
     cors,
   });
 
-  io.on("connection", async (socket) => {
-    const session = socket.request.session; // The session ID received when the user connects to the socket.
+  // Namespaces
+  const users = io.of("/users");
+  const admins = io.of("/admins");
 
-    // Make sure the session exists, otherwise close connection and return.
-    if (!session) {
+  // Middlewares
+  admins.use((_, next) => {
+    // TODO: Prevent normal users from connecting to this.
+    next();
+  });
+
+  /**
+   * Administrator connections. Admins can be considered agents or any other type of user that can
+   * access any session by passing the above admin middleware.
+   * @param socket The connection.
+   */
+  admins.on("connection", async (socket) => {
+    const { room } = socket.handshake.query; // Define query parameters.
+
+    // Make sure room is provided, otherwise disconnect.
+    if (!room) {
       socket.disconnect(true);
       return;
     }
 
-    await socket.join(session.id); // Create and join a room by the user's unique session identifier.
+    const roomId = String(room);
 
-    const params = socket.handshake.query; // Fetch any query parameters attached to the socket connection.
-
-    // Make sure that either the query params are provided, or they have already been attached to the session in the past.
-    if ((!params.name && !session.name) || (!params.email && !session.email)) {
+    // Make sure the provided room actually exists, otherwise disconnect.
+    if (!users.adapter.rooms.get(roomId)) {
       socket.disconnect(true);
       return;
     }
 
-    // Assign query params to the session.
-    if (!session.name && !session.email) {
-      session.name = String(params.name);
-      session.email = String(params.email);
-    }
+    await socket.join(roomId); // Attempt to join provided room.
 
-    session.save(); // Save the session details to the database.
-
-    socket.emit("session:created", session.id); // Tell the client the session has started.
-
-    // Fetch previous data or create a new entry in the database.
-    let data = await client.get(`room:${session.id}:state`);
-    if (!data) {
-      const newData = JSON.stringify({
-        state: true,
-        time: new Date(),
-      });
-
-      await client.set(`room:${session.id}:state`, newData);
-      data = newData;
-    }
-
-    const ticket = JSON.parse(data) as SessionInfo; // Convert he stored data to valid JSON.
-    socket.emit("server:started", ticket.time); // Tell the client when the session started at.
-
-    const messages = await getRecent(); // Fetch the last 100 messages in the chat.
-    debug.success(
-      `Session '${session.id}' (${String(
-        session.email
-      )}) has connected to socket.`
-    );
-
-    // Send recent messages to client.
-    messages.forEach((message) => {
-      socket.emit("message:receive", {
-        initial: true,
-        ...message,
+    socket.on("message:create", (message: string) => {
+      console.log(message);
+      emit("message:receive", {
+        session: "test",
+        name: "Agent Test",
+        content: message,
+        time: new Date().toISOString(),
       });
     });
 
-    socket.on(
-      "message:create",
-      async (message: string, callback: (error?: string) => void) => {
-        if (message.length < 3) {
-          callback("Message too short.");
-          return;
-        }
+    /**
+     * Simple function to making sending events to the current room easier.
+     * @param event The event name.
+     * @param args The arguments to add.
+     */
+    function emit(event: string, ...args: unknown[]) {
+      io.of("/users")
+        .to(roomId)
+        .emit(event, ...args);
+    }
 
-        try {
-          const msg: StoredMessage = {
-            session: session.id,
-            name: session.name as string,
-            content: message,
-            time: new Date().toISOString(),
-          };
-
-          await client.rPush(
-            `room:${session.id}:messages`,
-            JSON.stringify(msg)
-          );
-          socket.emit("message:receive", msg);
-
-          callback();
-        } catch (e) {
-          debug.error(String(e));
-
-          callback("Internal server error.");
-          return;
-        }
-      }
-    );
+    debug.warn(`New admin '${socket.id}' has connected.`);
 
     socket.on("disconnect", async () => {
-      await socket.leave(session.id); // Leave the room when the user signals to disconnect from the socket.
-      debug.error(`Session '${session.id}' has disconnected from the socket.`);
+      await socket.leave(roomId);
+      debug.error(`Admin '${socket.id}' has disconnected.`);
     });
+  });
 
-    async function getRecent(): Promise<
-      (Omit<StoredMessage, "time"> & { time: Date })[]
-    > {
-      if (!session) return [];
+  /**
+   * The base user connection, any user that connects from a live chat instance. No type
+   * of authentication or middlware needs to be passed to connect.
+   * @param socket The connection.
+   */
+  users.on("connection", async (socket) => {
+    try {
+      const conn = await UserSession.new(socket); // Create a new user session.
+      debug.success(
+        `User '${String(conn.session.name)}' has successfully connected.`
+      );
+      console.log(conn.session.id);
 
-      const data = await client.lRange(`room:${session.id}:messages`, -100, -1);
-      return data.map((val) => {
-        const json = JSON.parse(val) as StoredMessage;
-        return {
-          session: json.session,
-          name: session.name as string,
-          content: json.content,
-          time: new Date(json.time),
-        };
+      // Fetch the tickets information and then send ticket start date to client.
+      const info = await conn.getSessionInfo();
+      socket.emit("server:started", info.time);
+
+      const recent = await conn.getRecentMessages(); // Fetch the previous messages from the chat
+
+      // If the session is new, send them the default message.
+      if (recent.length === 0) {
+        await conn.sendMessage({
+          session: "system_message",
+          name: "System",
+          content:
+            "Thank you for creating a ticket, how may we assist you today?",
+          time: new Date().toISOString(),
+        });
+      }
+
+      // Send recent messages to client
+      for (const message of recent) {
+        await conn.sendMessage(
+          {
+            session: message.session,
+            name: message.name,
+            content: message.content,
+            time: message.time.toISOString(),
+          },
+          true
+        );
+      }
+
+      /**
+       * Listen for when the client signals to create a message.
+       */
+      socket.on(
+        "message:create",
+        async (message: string, callback: (error?: string) => void) => {
+          try {
+            await conn.sendMessage(message);
+            callback();
+          } catch {
+            callback("Internal server error.");
+          }
+        }
+      );
+
+      /**
+       * Cleanup the connection when the client disconnects from the socket.
+       */
+      socket.on("disconnect", async () => {
+        await conn.destroy();
+        debug.error(`User '${String(conn.session.name)}' has disconnected.`);
       });
+    } catch (e) {
+      debug.error(String(e));
+      socket.disconnect(true);
     }
   });
 

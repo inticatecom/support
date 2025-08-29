@@ -1,5 +1,5 @@
 // Resources
-import Chat from "./Chat";
+import LiveChat from "./Chat";
 import * as Definitions from "./definitions";
 
-export { Chat, Definitions }; // Export
+export { LiveChat, Definitions }; // Export

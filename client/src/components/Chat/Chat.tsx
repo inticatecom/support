@@ -1,5 +1,5 @@
 // Resources
-import { motion, AnimatePresence, useAnimate } from "motion/react";
+import { motion, AnimatePresence } from "motion/react";
 import moment from "moment";
 import { io, Socket } from "socket.io-client";
 
@@ -7,6 +7,9 @@ import { io, Socket } from "socket.io-client";
 import { useEffect, useRef, useState, useCallback } from "react";
 import useSound from "use-sound";
 import useLocalStorage from "./hooks/useLocalStorage";
+
+// Components
+import { Chat, Consent, StartSession } from "./components/Interaction";
 
 // Definitions
 import { Definitions } from ".";
@@ -21,14 +24,16 @@ import SendSound from "./assets/sounds/send.mp3?url";
 import ReceiveSound from "./assets/sounds/receive.mp3?url";
 
 // Icons
-import { IoChatbox, IoClose, IoSend } from "react-icons/io5";
+import { IoChatbox, IoClose } from "react-icons/io5";
 import { IoIosArrowBack } from "react-icons/io";
 import { CgSpinner } from "react-icons/cg";
 
 /**
  * The base chat window.
  */
-export default function Chat({ visible = true }: Definitions.ChatProps) {
+export default function LiveChat({
+  visible = true,
+}: Definitions.LiveChatProps) {
   // States
   const [loading, setLoading] = useState<boolean>(true);
   const [sessionLoading, setSessionLoading] = useState<boolean>(true);
@@ -67,7 +72,7 @@ export default function Chat({ visible = true }: Definitions.ChatProps) {
         }
 
         // Create Socket.io client.
-        const socket = io(BACKEND_URL_BASE, {
+        const socket = io(`${BACKEND_URL_BASE}/users`, {
           withCredentials: true,
           query: params,
         });
@@ -109,6 +114,7 @@ export default function Chat({ visible = true }: Definitions.ChatProps) {
           );
 
           socket.on("message:receive", (message: Definitions.Message) => {
+            console.log(message);
             addMessage(message);
             if (!message.initial && message.session !== sessionRef.current)
               playReceive();
@@ -370,9 +376,21 @@ function Window({
           <button className="cursor-pointer hover:bg-white/10 p-1 rounded-lg transition-colors">
             <IoIosArrowBack className="text-white/50 text-lg" />
           </button>
-          <div className="flex justify-center items-center gap-2">
-            {!chatLoading && (
+          <div className="flex justify-center items-center gap-[10px]">
+            {!chatLoading ? (
               <CgSpinner className="text-white animate-spin text-lg" />
+            ) : (
+              <motion.span
+                className="w-3 aspect-square bg-green-600 outline-[1px] outline-offset-1 outline-green-700 rounded-full"
+                animate={{
+                  outlineWidth: ["4px", "1px"],
+                }}
+                transition={{
+                  duration: 1.5,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                }}
+              />
             )}
             <h2 className="text-white font-semibold text-[14px]">
               {!chatLoading ? "Waiting for Agent" : "Live Chat"}
@@ -424,7 +442,6 @@ function Window({
 
       {!sessionLoading && (
         <Form
-          active={chatLoading ? false : true}
           showNotice={showNotice}
           setNotice={setNotice}
           sendMessage={sendMessage}
@@ -441,7 +458,6 @@ function Window({
  * The form that allows users to submit a message to the chat.
  */
 function Form({
-  active,
   showNotice,
   setNotice,
   sendMessage,
@@ -450,11 +466,7 @@ function Form({
   startSession,
 }: Definitions.FormProps) {
   // States
-  const [sendable, setSendable] = useState<boolean>(false);
   const [connecting, setConnecting] = useState<boolean>(false);
-
-  // Hooks
-  const [errorScope, playError] = useAnimate();
 
   /**
    * The event for when the client triggers the session to be started.
@@ -474,145 +486,11 @@ function Form({
     [startSession]
   );
 
-  /**
-   * The event for when the client enters or removes text from the message input.
-   * @param e The form event.
-   */
-  const onMessageChange = useCallback<
-    (e: React.ChangeEvent<HTMLInputElement>) => void
-  >((e) => {
-    setSendable(e.target.value.length >= 3);
-  }, []);
-
-  /**
-   * Triggers when the user submits the send message form.
-   * @param e The form event.
-   */
-  const send = useCallback<
-    (e: React.FormEvent<HTMLFormElement>) => Promise<void>
-  >(
-    async (e) => {
-      e.preventDefault();
-
-      if (!sendable) {
-        playError(
-          errorScope.current,
-          { rotate: [0, 5, -5, 0] },
-          { duration: 0.15, ease: "easeInOut" }
-        );
-        return;
-      }
-
-      if (!(await sendMessage(e))) {
-        playError(
-          errorScope.current,
-          { rotate: [0, 5, -5, 0] },
-          { duration: 0.15, ease: "easeInOut" }
-        );
-      }
-
-      setSendable(false);
-    },
-    [sendMessage, sendable, playError, errorScope]
-  );
-
   return (
     <div className="self-end w-full flex flex-col justify-end gap-3 pb-4 px-4">
-      {!prompt && (
-        <form
-          className={`flex flex-col w-full gap-1 ${!active && "opacity-0"}`}
-          onSubmit={send}>
-          <label
-            ref={errorScope}
-            className="rounded-xl bg-white/10 text-white p-3 w-full outline-offset-[2.7px] outline-white/30 focus-within:outline-[2.5] flex justify-between items-center gap-4 cursor-text has-[:disabled]:text-white/50">
-            <input
-              className="outline-none w-full disabled:cursor-not-allowed"
-              type="text"
-              placeholder="Ask a question ..."
-              disabled={sending}
-              name="message"
-              onChange={onMessageChange}
-            />
-            <button
-              type="submit"
-              className={sendable ? "cursor-pointer" : "cursor-not-allowed"}>
-              {!sending ? (
-                <IoSend className={sendable ? "text-white" : "text-white/30"} />
-              ) : (
-                <CgSpinner className="text-white text-lg animate-spin cursor-not-allowed" />
-              )}
-            </button>
-          </label>
-        </form>
-      )}
-
-      {prompt && (
-        <form
-          className="flex flex-col rounded-xl p-4 gap-2 bg-white/2 border-1 border-white/10"
-          onSubmit={connect}>
-          <label className="flex flex-col gap-1 text-white">
-            Full Name
-            <input
-              type="text"
-              name="name"
-              placeholder="Please enter your full name"
-              disabled={connecting}
-              required
-              className="bg-white/5 p-2 text-white rounded-lg outline-white disabled:cursor-not-allowed focus:outline-2 border-1 border-white/10"
-            />
-          </label>
-          <label className="flex flex-col gap-1 text-white">
-            Email
-            <input
-              type="email"
-              name="email"
-              placeholder="Please enter your email address"
-              disabled={connecting}
-              required
-              className="bg-white/5 p-2 text-white rounded-lg outline-white disabled:cursor-not-allowed focus:outline-2 border-1 border-white/10"
-            />
-          </label>
-          <button
-            type="submit"
-            className="flex justify-center items-center w-full bg-white rounded-lg p-2 text-sm text-black font-semibold cursor-pointer hover:bg-white/95 transition-colors">
-            {!connecting ? (
-              "Start Conversation"
-            ) : (
-              <CgSpinner className="text-black animate-spin text-[20px]" />
-            )}
-          </button>
-        </form>
-      )}
-
-      {showNotice && (
-        <div className="flex justify-center items-center gap-2 bg-white/10 rounded-xl p-3">
-          <p className="text-white/50 text-sm">
-            By continuing to use our services, you agree to our{" "}
-            <a
-              href="https://inticate.com/terms"
-              target="_blank"
-              className="underline hover:text-blue-500">
-              terms
-            </a>{" "}
-            and{" "}
-            <a
-              href="https://inticate.com/privacy"
-              target="_blank"
-              className="underline hover:text-blue-500">
-              privacy policy
-            </a>
-            .
-          </p>
-          <button
-            type="button"
-            onClick={() => {
-              setNotice("false");
-            }}
-            className="cursor-pointer hover:bg-white/10 p-1 rounded-lg transition-colors">
-            <IoClose className="text-white text-xl" />
-          </button>
-        </div>
-      )}
+      {!prompt && <Chat onSend={sendMessage} sending={sending} />}
+      {prompt && <StartSession onConnect={connect} connecting={connecting} />}
+      {showNotice && <Consent onDismiss={() => setNotice("false")} />}
     </div>
   );
 }

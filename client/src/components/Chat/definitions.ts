@@ -1,20 +1,13 @@
 // Resources
-import { type SetStateAction } from "react";
 import { type SetStorage } from "./hooks/useLocalStorage";
 
-export type ConnectEvent = (
-  e: React.FormEvent<HTMLFormElement>
-) => Promise<boolean>;
+type ConnectEvent = (e: React.FormEvent<HTMLFormElement>) => Promise<boolean>;
 
-export type SendEvent = (
-  e: React.FormEvent<HTMLFormElement>
-) => Promise<boolean>;
+type SendEvent = (e: React.FormEvent<HTMLFormElement>) => Promise<boolean>;
 
 export type SystemMessage = Pick<Message, "content" | "time">;
 
-export type SetState<T> = React.Dispatch<SetStateAction<T>>;
-
-export interface ChatProps {
+export interface LiveChatProps {
   /** Your API key that allows the component to interact with the API. */
   auth: string;
   /** Whether or not the chat interface is shown at all. Keep in mind that the socket connection will still connect in the background. */
@@ -60,14 +53,10 @@ export interface WindowProps {
   startSession: ConnectEvent;
 }
 
-export interface FormProps
-  extends Omit<
-    WindowProps,
-    "open" | "setOpen" | "messages" | "chatLoading" | "sessionLoading"
-  > {
-  /** Whether or not the send form is visible. */
-  active: boolean;
-}
+export type FormProps = Omit<
+  WindowProps,
+  "open" | "setOpen" | "messages" | "chatLoading" | "sessionLoading"
+>;
 
 export interface Message {
   /** The session ID from which the message was sent from. */

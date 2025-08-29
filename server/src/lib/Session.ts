@@ -1,0 +1,170 @@
+// Resources
+import { type Socket } from "socket.io";
+import { Session, SessionData } from "express-session";
+import { client } from "..";
+
+// Interfaces
+interface SessionInfo {
+  state: boolean;
+  time: string;
+}
+export interface Message {
+  session: string;
+  name: string;
+  content: string;
+  time: string;
+}
+
+declare module "http" {
+  interface IncomingMessage {
+    session?: import("express-session").Session &
+      Partial<import("express-session").SessionData> &
+      Record<string, unknown>;
+  }
+}
+
+/**
+ * Controls a base user session. Allows you to send messages, system messages, etc.
+ */
+export class UserSession {
+  /** The socket. */
+  private socket: Socket;
+  /** The current session. */
+  public session: Session & Partial<SessionData> & Record<string, unknown>;
+
+  /**
+   * Creates a user session.
+   * @param socket The socket.
+   * @returns The user session controller.
+   */
+  private constructor(socket: Socket) {
+    this.socket = socket;
+
+    const session = socket.request.session;
+    if (!session) throw new Error("Session does not exist.");
+
+    this.session = session;
+  }
+
+  /**
+   * Creates a user session.
+   * @param socket The socket.
+   * @returns The user session controller.
+   */
+  static async new(socket: Socket): Promise<UserSession> {
+    // Validate the session.
+    const session = socket.request.session;
+    if (!session) {
+      socket.disconnect(true);
+      throw new Error("Session does not exist.");
+    }
+
+    // Make sure either session parameters exist or are provided in the initial request.
+    const params = socket.handshake.query;
+    if ((!params.name && !session.name) || (!params.email && !session.email)) {
+      socket.disconnect(true);
+      throw new Error(
+        "Must provide initial parameters or have previous ones stored."
+      );
+    }
+
+    // If session parameters are not present, assign them values.
+    if (!session.name && !session.email) {
+      session.name = params.name;
+      session.email = params.email;
+      session.save();
+    }
+
+    await socket.join(session.id); // Join the room.
+    socket.emit("session:created", session.id); // Tell the client the session ID.
+
+    return new UserSession(socket); // Return class to be used externally.
+  }
+
+  /**
+   * Sends a message to the current session as the primary session owner.
+   * @param message The message to send.
+   * @param initial Whether or not this message already exists and you are trying to resend the message to the client.
+   */
+  public async sendMessage(
+    message: string | Message,
+    initial?: boolean
+  ): Promise<void> {
+    let data: Message & { initial?: boolean };
+    if (typeof message !== "string" && "session" in message) {
+      data = {
+        initial: initial,
+        ...message,
+      };
+    } else {
+      data = {
+        session: this.session.id,
+        name: this.session.name as string,
+        content: message,
+        time: new Date().toISOString(),
+        ...(initial && { initial: initial }),
+      };
+    }
+
+    if (!initial) {
+      await client.rPush(
+        `room:${this.session.id}:messages`,
+        JSON.stringify(data)
+      );
+    }
+
+    this.socket.emit("message:receive", data);
+  }
+
+  /**
+   * Runs the cleanup logic to destroy the session and leave the room.
+   */
+  public async destroy(): Promise<void> {
+    await this.socket.leave(this.session.id);
+    this.socket.disconnect(true);
+  }
+
+  /**
+   * Fetches the session information such as its status and owner.
+   * @returns The session's information.
+   */
+  public async getSessionInfo(): Promise<SessionInfo> {
+    let data = await client.get(`room:${this.session.id}:state`);
+    if (!data) {
+      const newData = JSON.stringify({
+        state: true,
+        time: new Date(),
+      });
+
+      await client.set(`room:${this.session.id}:state`, newData);
+      data = newData;
+    }
+
+    return JSON.parse(data) as SessionInfo;
+  }
+
+  /**
+   * Fetches recent messages in the session.
+   * @returns The messages.
+   */
+  public async getRecentMessages(): Promise<
+    (Omit<Message, "time"> & { time: Date })[]
+  > {
+    const data = await client.lRange(
+      `room:${this.session.id}:messages`,
+      -100,
+      -1
+    );
+    return data.map((val) => {
+      const json = JSON.parse(val) as Message;
+      return {
+        session: json.session,
+        name: this.session.name as string,
+        content: json.content,
+        time: new Date(json.time),
+      };
+    });
+  }
+}
+
+// export class AdminSession {}
