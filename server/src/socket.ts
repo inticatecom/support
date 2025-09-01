@@ -1,9 +1,11 @@
 // Resources
 import { Server } from "socket.io";
 import { createServer, RequestListener } from "http";
-import { debug } from "./lib/Debug";
 import { CorsOptions } from "cors";
-import { UserSession } from "./lib/Session";
+
+// Internal Resources
+import { debug } from "./lib/Debug";
+import { AdminSession, UserSession } from "./lib/Session";
 
 /**
  * The base initializer for the Socket.io server.
@@ -33,49 +35,21 @@ export default function Socket(app: RequestListener, cors: CorsOptions) {
    * @param socket The connection.
    */
   admins.on("connection", async (socket) => {
-    const { room } = socket.handshake.query; // Define query parameters.
+    const conn = await AdminSession.new(socket, users); // Initialize the admin session.
+    debug.warn(`New admin '${socket.id}' has connected.`);
 
-    // Make sure room is provided, otherwise disconnect.
-    if (!room) {
-      socket.disconnect(true);
-      return;
-    }
-
-    const roomId = String(room);
-
-    // Make sure the provided room actually exists, otherwise disconnect.
-    if (!users.adapter.rooms.get(roomId)) {
-      socket.disconnect(true);
-      return;
-    }
-
-    await socket.join(roomId); // Attempt to join provided room.
-
-    socket.on("message:create", (message: string) => {
-      console.log(message);
-      emit("message:receive", {
-        session: "test",
-        name: "Agent Test",
-        content: message,
-        time: new Date().toISOString(),
-      });
+    /**
+     * Listens for message events and send them to the chat.
+     */
+    socket.on("message:create", async (message: string) => {
+      await conn.sendMessage(message);
     });
 
     /**
-     * Simple function to making sending events to the current room easier.
-     * @param event The event name.
-     * @param args The arguments to add.
+     * Listen for when the client disconnects, then do cleanup.
      */
-    function emit(event: string, ...args: unknown[]) {
-      io.of("/users")
-        .to(roomId)
-        .emit(event, ...args);
-    }
-
-    debug.warn(`New admin '${socket.id}' has connected.`);
-
     socket.on("disconnect", async () => {
-      await socket.leave(roomId);
+      await conn.destroy();
       debug.error(`Admin '${socket.id}' has disconnected.`);
     });
   });

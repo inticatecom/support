@@ -1,5 +1,5 @@
 // Resources
-import { type Socket } from "socket.io";
+import { Namespace, type Socket } from "socket.io";
 import { Session, SessionData } from "express-session";
 import { client } from "..";
 
@@ -28,9 +28,11 @@ declare module "http" {
  */
 export class UserSession {
   /** The socket. */
-  private socket: Socket;
+  private readonly socket: Socket;
   /** The current session. */
-  public session: Session & Partial<SessionData> & Record<string, unknown>;
+  public readonly session: Session &
+    Partial<SessionData> &
+    Record<string, unknown>;
 
   /**
    * Creates a user session.
@@ -167,4 +169,97 @@ export class UserSession {
   }
 }
 
-// export class AdminSession {}
+/**
+ * Creates an admin session and allows you to interact with it.
+ */
+export class AdminSession {
+  /** The socket. */
+  private readonly socket: Socket;
+  /** The normal user namespace. */
+  private readonly namespace: Namespace;
+  /** The room identifier. */
+  private readonly room: string;
+
+  /**
+   * Creates a new instance of an admin session.
+   * @param socket The socket.
+   * @param userNamespace The normal user namespace.
+   * @param room The room to connect to.
+   * @returns A new instance of an admin session.
+   */
+  private constructor(socket: Socket, userNamespace: Namespace, room: string) {
+    this.socket = socket;
+    this.namespace = userNamespace;
+    this.room = room;
+
+    this.emit("server:message", {
+      content: "Agent 'Agent Test' has joined the chat.",
+      time: new Date(),
+    });
+  }
+
+  /**
+   * Creates a new instance of an admin session.
+   * @param socket The socket.
+   * @param userNamespace The normal user namespace.
+   * @returns A new instance of an admin session.
+   */
+  static async new(
+    socket: Socket,
+    userNamespace: Namespace
+  ): Promise<AdminSession> {
+    const { room } = socket.handshake.query;
+    if (!room) {
+      socket.disconnect(true);
+      throw new Error("Room was not provided.");
+    }
+
+    const roomId = String(room);
+    if (!userNamespace.adapter.rooms.get(roomId)) {
+      socket.disconnect(true);
+      throw new Error("Room does not exist.");
+    }
+
+    await socket.join(roomId);
+
+    return new AdminSession(socket, userNamespace, roomId);
+  }
+
+  /**
+   * Sends a message to the current room.
+   * @param message The message to send.
+   */
+  public async sendMessage(message: string): Promise<void> {
+    const data: Message = {
+      session: "agent_message",
+      name: "Agent Test",
+      content: message,
+      time: new Date().toISOString(),
+    };
+
+    await client.rPush(`room:${this.room}:messages`, JSON.stringify(data));
+    this.socket.emit("message:receive", data);
+  }
+
+  /**
+   * Cleans up and destroys the admin session.
+   */
+  public async destroy(): Promise<void> {
+    this.emit("server:message", {
+      content: "Agent 'Agent Test' has left the chat.",
+      time: new Date(),
+    });
+
+    await this.socket.leave(this.room);
+    this.socket.disconnect(true);
+  }
+
+  /**
+   * Sends an event with arguments to all clients connected to the room.
+   * @param event The name of the event.
+   * @param args Any arguments to attach to the event.
+   */
+  public emit(event: string, ...args: unknown[]): void {
+    this.namespace.to(this.room).emit(event, ...args);
+  }
+}
