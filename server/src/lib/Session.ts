@@ -238,7 +238,7 @@ export class AdminSession {
     };
 
     await client.rPush(`room:${this.room}:messages`, JSON.stringify(data));
-    this.socket.emit("message:receive", data);
+    this.emit("message:receive", data);
   }
 
   /**
@@ -260,6 +260,7 @@ export class AdminSession {
    * @param args Any arguments to attach to the event.
    */
   public emit(event: string, ...args: unknown[]): void {
+    console.log(this.namespace.name);
     this.namespace.to(this.room).emit(event, ...args);
   }
 }
