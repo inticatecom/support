@@ -65,7 +65,6 @@ export default function Socket(app: RequestListener, cors: CorsOptions) {
       debug.success(
         `User '${String(conn.session.name)}' has successfully connected.`
       );
-      console.log(conn.session.id);
 
       // Fetch the tickets information and then send ticket start date to client.
       const info = await conn.getSessionInfo();

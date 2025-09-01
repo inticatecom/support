@@ -114,7 +114,6 @@ export default function LiveChat({
           );
 
           socket.on("message:receive", (message: Definitions.Message) => {
-            console.log(message);
             addMessage(message);
             if (!message.initial && message.session !== sessionRef.current)
               playReceive();

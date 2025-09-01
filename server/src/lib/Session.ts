@@ -161,7 +161,7 @@ export class UserSession {
       const json = JSON.parse(val) as Message;
       return {
         session: json.session,
-        name: this.session.name as string,
+        name: json.name,
         content: json.content,
         time: new Date(json.time),
       };
@@ -260,7 +260,6 @@ export class AdminSession {
    * @param args Any arguments to attach to the event.
    */
   public emit(event: string, ...args: unknown[]): void {
-    console.log(this.namespace.name);
     this.namespace.to(this.room).emit(event, ...args);
   }
 }
