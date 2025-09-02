@@ -1,6 +1,9 @@
 // Resources
 import { useAnimate } from "motion/react";
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
+
+// Components
+import TextareaAutoSize from "react-textarea-autosize";
 
 // Icons
 import { IoSend } from "react-icons/io5";
@@ -32,6 +35,9 @@ export function Chat({ onSend, sending }: ChatProps) {
 
   // Hooks
   const [error, playError] = useAnimate();
+
+  // References
+  const form = useRef<HTMLFormElement>(null);
 
   /**
    * Causes the input frame to shake and highlight in red, indicating an error has occurred
@@ -86,22 +92,34 @@ export function Chat({ onSend, sending }: ChatProps) {
    * The event for when the client enters or removes text from the message input.
    * @param e The form event.
    */
-  const onChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    setSendable(e.target.value.length > 3);
+  const onChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const value = e.target.value.replace(/ /g, "");
+    setSendable(value.length > 3);
   }, []);
 
   return (
-    <form className={"flex flex-col w-full gap-1"} onSubmit={onSubmit}>
+    <form
+      ref={form}
+      className={"flex flex-col w-full gap-1"}
+      onSubmit={onSubmit}>
       <div
         ref={error}
         className="rounded-xl bg-white/10 text-white p-3 w-full outline-offset-[2.7px] outline-white/30 focus-within:outline-[2.5] flex flex-col gap-2 cursor-text has-[:disabled]:text-white/50">
-        <div className="flex justify-between items-center w-full">
-          <input
-            className="outline-none w-full disabled:cursor-not-allowed"
-            type="text"
+        <div className="flex justify-between gap-2 items-center w-full">
+          <TextareaAutoSize
+            className="outline-none w-full resize-none disabled:cursor-not-allowed"
             placeholder="Ask a question ..."
             disabled={sending}
             name="message"
+            autoFocus
+            minRows={1}
+            maxRows={3}
+            onKeyDown={(e: KeyboardEvent) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                form.current?.requestSubmit();
+              }
+            }}
             onChange={onChange}
           />
           <button
