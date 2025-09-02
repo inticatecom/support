@@ -35,22 +35,23 @@ export default function Socket(app: RequestListener, cors: CorsOptions) {
    * @param socket The connection.
    */
   admins.on("connection", async (socket) => {
-    const conn = await AdminSession.new(socket, users); // Initialize the admin session.
+    let conn: AdminSession | null = await AdminSession.new(socket, users); // Initialize the admin session.
     debug.warn(`New admin '${socket.id}' has connected.`);
 
     /**
      * Listens for message events and send them to the chat.
      */
     socket.on("message:create", async (message: string) => {
-      await conn.sendMessage(message);
+      await conn?.sendMessage(message);
     });
 
     /**
      * Listen for when the client disconnects, then do cleanup.
      */
     socket.on("disconnect", async () => {
-      await conn.destroy();
+      await conn?.destroy();
       debug.error(`Admin '${socket.id}' has disconnected.`);
+      conn = null;
     });
   });
 
@@ -61,7 +62,7 @@ export default function Socket(app: RequestListener, cors: CorsOptions) {
    */
   users.on("connection", async (socket) => {
     try {
-      const conn = await UserSession.new(socket); // Create a new user session.
+      let conn: UserSession | null = await UserSession.new(socket); // Create a new user session.
       debug.success(
         `User '${String(conn.session.name)}' has successfully connected.`
       );
@@ -103,7 +104,7 @@ export default function Socket(app: RequestListener, cors: CorsOptions) {
         "message:create",
         async (message: string, callback: (error?: string) => void) => {
           try {
-            await conn.sendMessage(message);
+            await conn?.sendMessage(message);
             callback();
           } catch {
             callback("Internal server error.");
@@ -115,8 +116,9 @@ export default function Socket(app: RequestListener, cors: CorsOptions) {
        * Cleanup the connection when the client disconnects from the socket.
        */
       socket.on("disconnect", async () => {
-        await conn.destroy();
-        debug.error(`User '${String(conn.session.name)}' has disconnected.`);
+        await conn?.destroy();
+        debug.error(`User '${String(conn?.session.name)}' has disconnected.`);
+        conn = null;
       });
     } catch (e) {
       debug.error(String(e));
