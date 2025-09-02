@@ -30,7 +30,7 @@ await (async () => {
   // Create middleware structure for Express Session.
   const sessionMiddleware = session({
     store: new RedisStore({ client, prefix: "session:" }),
-    secret: String(process.env.SECRET),
+    secret: String(process.env.SOCKET_SECRET),
     resave: false,
     saveUninitialized: true,
     cookie: {
@@ -59,9 +59,9 @@ await (async () => {
   io.engine.use(sessionMiddleware);
 
   // Start server on port found in environment variables.
-  server.listen(process.env.PORT, () => {
+  server.listen(process.env.BACKEND_PORT, () => {
     debug.success(
-      `Started HTTP instances on port ${String(process.env.PORT)}.`
+      `Started HTTP instances on port ${String(process.env.BACKEND_PORT)}.`
     );
   });
 })();

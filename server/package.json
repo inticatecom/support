@@ -1,15 +1,7 @@
 {
   "name": "live-chat-backend",
   "version": "1.0.0",
-  "description": "",
   "main": "dist/index.js",
-  "scripts": {
-    "start": "tsx dist/index.js",
-    "dev": "tsx watch src/index.ts"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "MIT",
   "type": "module",
   "dependencies": {
     "@types/dotenv": "^6.1.1",

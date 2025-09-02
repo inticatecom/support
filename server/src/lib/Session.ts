@@ -108,8 +108,7 @@ export class UserSession {
       };
     }
 
-    if (data.content.replace(/ /g, "").length < 3)
-      throw new Error("Message length too short.");
+    if (data.content.trim().length < 3) return;
 
     if (!initial) {
       await client.rPush(
@@ -233,8 +232,7 @@ export class AdminSession {
    * @param message The message to send.
    */
   public async sendMessage(message: string): Promise<void> {
-    if (message.replace(/ /g, "").length < 3)
-      throw new Error("Message length too short.");
+    if (message.trim().length < 3) return;
     const data: Message = {
       session: "agent_message",
       name: "Agent Test",

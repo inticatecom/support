@@ -93,8 +93,7 @@ export function Chat({ onSend, sending }: ChatProps) {
    * @param e The form event.
    */
   const onChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    const value = e.target.value.replace(/ /g, "");
-    setSendable(value.length > 3);
+    setSendable(e.target.value.trim().length > 3);
   }, []);
 
   return (

@@ -1,12 +1,25 @@
 {
-  "name": "live-chat-monorepo",
   "private": true,
+  "name": "live-chat-monorepo",
+  "description": "Live chat repository monorepo including both the backend and frontend.",
   "version": "1.0.0",
   "workspaces": [
     "client",
     "server"
   ],
-  "dependencies": {
-    "react-textarea-autosize": "^8.5.9"
+  "scripts": {
+    "start": "echo start",
+    "dev": "concurrently --raw \"npm run dev:client\" \"npm run dev:server\"",
+    "build": "echo build",
+    "dev:client": "cd client && vite",
+    "dev:server": "tsx --watch server/src/index.ts",
+    "build:client": "tsc -b && vite build --cwd client",
+    "build:server": "echo soon",
+    "lint:server": "eslint server",
+    "lint:client": "eslint client"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1",
+    "vite": "^7.1.4"
   }
 }
