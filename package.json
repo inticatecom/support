@@ -10,16 +10,16 @@
   "scripts": {
     "start": "echo start",
     "dev": "concurrently --raw \"npm run dev:client\" \"npm run dev:server\"",
-    "build": "echo build",
+    "lint": "concurrently --raw \"npm run lint:client\" \"npm run lint:server\"",
+    "build": "concurrently --raw \"npm run build:client\" \"npm run build:server\"",
     "dev:client": "cd client && vite",
     "dev:server": "tsx --watch server/src/index.ts",
-    "build:client": "tsc -b && vite build --cwd client",
-    "build:server": "echo soon",
-    "lint:server": "eslint server",
-    "lint:client": "eslint client"
+    "build:client": "cd client && tsc -b && vite build",
+    "build:server": "cd server && tsc",
+    "lint:server": "cd server && eslint .",
+    "lint:client": "cd client && eslint ."
   },
   "devDependencies": {
-    "concurrently": "^9.2.1",
-    "vite": "^7.1.4"
+    "concurrently": "^9.2.1"
   }
 }
