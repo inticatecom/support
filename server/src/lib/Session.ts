@@ -194,10 +194,7 @@ export class AdminSession {
     this.namespace = userNamespace;
     this.room = room;
 
-    this.emit("server:message", {
-      content: "Agent 'Agent Test' has joined the chat.",
-      time: new Date(),
-    });
+    this.emit("agent:join", "Agent Test");
   }
 
   /**
@@ -248,10 +245,7 @@ export class AdminSession {
    * Cleans up and destroys the admin session.
    */
   public async destroy(): Promise<void> {
-    this.emit("server:message", {
-      content: "Agent 'Agent Test' has left the chat.",
-      time: new Date(),
-    });
+    this.emit("agent:leave", "Agent Test");
 
     await this.socket.leave(this.room);
     this.socket.disconnect(true);

@@ -35,24 +35,29 @@ export default function Socket(app: RequestListener, cors: CorsOptions) {
    * @param socket The connection.
    */
   admins.on("connection", async (socket) => {
-    let conn: AdminSession | null = await AdminSession.new(socket, users); // Initialize the admin session.
-    debug.warn(`New admin '${socket.id}' has connected.`);
+    try {
+      let conn: AdminSession | null = await AdminSession.new(socket, users); // Initialize the admin session.
+      debug.warn(`New admin '${socket.id}' has connected.`);
 
-    /**
-     * Listens for message events and send them to the chat.
-     */
-    socket.on("message:create", async (message: string) => {
-      await conn?.sendMessage(message);
-    });
+      /**
+       * Listens for message events and send them to the chat.
+       */
+      socket.on("message:create", async (message: string) => {
+        await conn?.sendMessage(message);
+      });
 
-    /**
-     * Listen for when the client disconnects, then do cleanup.
-     */
-    socket.on("disconnect", async () => {
-      await conn?.destroy();
-      debug.error(`Admin '${socket.id}' has disconnected.`);
-      conn = null;
-    });
+      /**
+       * Listen for when the client disconnects, then do cleanup.
+       */
+      socket.on("disconnect", async () => {
+        await conn?.destroy();
+        debug.error(`Admin '${socket.id}' has disconnected.`);
+        conn = null;
+      });
+    } catch (e) {
+      debug.error(String(e));
+      socket.disconnect(true);
+    }
   });
 
   /**
@@ -64,7 +69,9 @@ export default function Socket(app: RequestListener, cors: CorsOptions) {
     try {
       let conn: UserSession | null = await UserSession.new(socket); // Create a new user session.
       debug.success(
-        `User '${String(conn.session.name)}' has successfully connected.`
+        `User '${String(conn.session.name)}' (${
+          conn.session.id
+        }) has successfully connected.`
       );
 
       // Fetch the tickets information and then send ticket start date to client.

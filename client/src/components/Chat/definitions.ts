@@ -51,11 +51,12 @@ export interface WindowProps {
   prompt: boolean;
   /** The event that triggers when the socket will attempt a connection. */
   startSession: ConnectEvent;
+  agent: string | null;
 }
 
 export type FormProps = Omit<
   WindowProps,
-  "open" | "setOpen" | "messages" | "chatLoading" | "sessionLoading"
+  "open" | "setOpen" | "messages" | "chatLoading" | "sessionLoading" | "agent"
 >;
 
 export interface Message {

@@ -41,6 +41,7 @@ export default function LiveChat({
   const [sending, setSending] = useState<boolean>(false);
   const [session, setSession] = useState<string | null>(null);
   const [showPrompt, setShowPrompt] = useState<boolean>(true);
+  const [agent, setAgent] = useState<string | null>(null);
 
   // References
   const socketRef = useRef<Socket>(null);
@@ -85,15 +86,23 @@ export default function LiveChat({
           reject(new Error("Socket connection exceeded timeout length."));
         }, CONNECTION_TIMEOUT * 1000);
 
-        // Connect listeners and run logic to tell user socket has successfully connected.
+        /**
+         * Connect listeners and run logic to tell user socket has successfully connected.
+         */
         socket.once("connect", () => {
           clearTimeout(timeout);
 
+          /**
+           * Triggers when the session connects, allowing the client to receive the session ID.
+           */
           socket.once("session:created", (id: string) => {
             setSession(id);
             sessionRef.current = id;
           });
 
+          /**
+           * Triggers when the chat starts, receiving the time the chat was started at.
+           */
           socket.once("server:started", (time: string) => {
             addMessage({
               content: `Chat started at ${new Date(time).toLocaleTimeString(
@@ -109,10 +118,38 @@ export default function LiveChat({
             });
           });
 
+          /**
+           * Triggers when an agent joins the chat.
+           */
+          socket.on("agent:join", (agent: string) => {
+            setAgent(agent);
+            addMessage({
+              content: `Agent '${agent}' has joined the chat.`,
+              time: new Date(),
+            });
+          });
+
+          /**
+           * Triggers when an agent leaves the chat.
+           */
+          socket.on("agent:leave", (agent: string) => {
+            setAgent(null);
+            addMessage({
+              content: `Agent '${agent}' has left the chat.`,
+              time: new Date(),
+            });
+          });
+
+          /**
+           * Triggers when the client receives a server message.
+           */
           socket.on("server:message", (message: Definitions.SystemMessage) =>
             addMessage(message)
           );
 
+          /**
+           * Triggers when another user in the session sends a message.
+           */
           socket.on("message:receive", (message: Definitions.Message) => {
             addMessage(message);
             if (!message.initial && message.session !== sessionRef.current)
@@ -125,7 +162,9 @@ export default function LiveChat({
           resolve(true); // Tell the client that the connection between the client and the socket has been successful.
         });
 
-        // Reject promise and clear timeout if socket refuses to connect.
+        /**
+         * Reject promise and clear timeout if socket refuses to connect.
+         */
         socket.once("connect_error", (e) => {
           clearTimeout(timeout);
           console.error(e);
@@ -133,8 +172,10 @@ export default function LiveChat({
           reject(e);
         });
 
-        // Clear messages on socket disconnection.
-        socket.once("disconnect", () => {
+        /**
+         * Clear messages on socket disconnection.
+         */
+        socket.on("disconnect", () => {
           clearTimeout(timeout);
           setMessages([]);
         });
@@ -302,6 +343,7 @@ export default function LiveChat({
             messages={messages}
             startSession={startSession}
             prompt={showPrompt}
+            agent={agent}
           />
         )}
         <motion.button
@@ -364,6 +406,7 @@ function Window({
   messages,
   startSession,
   prompt,
+  agent,
 }: Definitions.WindowProps) {
   return (
     <motion.div
@@ -376,9 +419,7 @@ function Window({
             <IoIosArrowBack className="text-white/50 text-lg" />
           </button>
           <div className="flex justify-center items-center gap-[10px]">
-            {!chatLoading ? (
-              <CgSpinner className="text-white animate-spin text-lg" />
-            ) : (
+            {!chatLoading && agent ? (
               <motion.span
                 className="w-3 aspect-square bg-green-600 outline-[1px] outline-offset-1 outline-green-700 rounded-full"
                 animate={{
@@ -390,9 +431,13 @@ function Window({
                   ease: "easeInOut",
                 }}
               />
+            ) : (
+              <CgSpinner className="text-white animate-spin text-lg" />
             )}
             <h2 className="text-white font-semibold text-[14px]">
-              {!chatLoading ? "Waiting for Agent" : "Live Chat"}
+              {!chatLoading && agent
+                ? `Connected with ${agent}`
+                : "Waiting for Agent"}
             </h2>
           </div>
         </div>
@@ -508,7 +553,7 @@ function Bubble({
     <div
       className={`flex flex-col w-11/12 ${mode === "secondary" && "self-end"}`}>
       <p
-        className={`text-white p-3 rounded-lg w-full hyphens-auto break-words ${
+        className={`text-white p-3 rounded-lg w-full hyphens-auto break-words whitespace-pre-wrap ${
           !mode || mode === "primary"
             ? "bg-white/10"
             : "bg-blue-500/10 self-end"
