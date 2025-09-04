@@ -73,6 +73,7 @@ export default function LiveChat({
         }
 
         // Create Socket.io client.
+        console.log(params);
         const socket = io(`${BACKEND_URL_BASE}/users`, {
           withCredentials: true,
           query: params,
@@ -203,6 +204,7 @@ export default function LiveChat({
 
           setMessages((prev) => {
             if ("session" in message) {
+              console.log(message);
               const msg: Definitions.Message = {
                 ...message,
                 session: message.session,

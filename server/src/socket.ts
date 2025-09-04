@@ -68,15 +68,16 @@ export default function Socket(app: RequestListener, cors: CorsOptions) {
   users.on("connection", async (socket) => {
     try {
       let conn: UserSession | null = await UserSession.new(socket); // Create a new user session.
+      const info = await conn.getSessionInfo();
+
       debug.success(
-        `User '${String(conn.session.name)}' (${
+        `User '${String(info?.owner.name)}' (${
           conn.session.id
         }) has successfully connected.`
       );
 
       // Fetch the tickets information and then send ticket start date to client.
-      const info = await conn.getSessionInfo();
-      socket.emit("server:started", info.time);
+      socket.emit("server:started", info?.createdAt);
 
       const recent = await conn.getRecentMessages(); // Fetch the previous messages from the chat
 
@@ -124,7 +125,7 @@ export default function Socket(app: RequestListener, cors: CorsOptions) {
        */
       socket.on("disconnect", async () => {
         await conn?.destroy();
-        debug.error(`User '${String(conn?.session.name)}' has disconnected.`);
+        debug.error(`User '${String(info?.owner.name)}' has disconnected.`);
         conn = null;
       });
     } catch (e) {

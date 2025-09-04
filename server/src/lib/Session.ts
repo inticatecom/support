@@ -6,7 +6,11 @@ import { client } from "..";
 // Interfaces
 interface SessionInfo {
   state: boolean;
-  time: string;
+  createdAt: string;
+  owner: {
+    name: string;
+    email: string;
+  };
 }
 export interface Message {
   session: string;
@@ -33,19 +37,21 @@ export class UserSession {
   public readonly session: Session &
     Partial<SessionData> &
     Record<string, unknown>;
+  private owner: string;
 
   /**
    * Creates a user session.
    * @param socket The socket.
    * @returns The user session controller.
    */
-  private constructor(socket: Socket) {
+  private constructor(socket: Socket, owner: string) {
     this.socket = socket;
 
     const session = socket.request.session;
     if (!session) throw new Error("Session does not exist.");
 
     this.session = session;
+    this.owner = owner;
   }
 
   /**
@@ -61,26 +67,34 @@ export class UserSession {
       throw new Error("Session does not exist.");
     }
 
-    // Make sure either session parameters exist or are provided in the initial request.
+    await socket.join(session.id); // Join the room.
+    socket.emit("session:created", session.id); // Tell the client the session ID.
+
+    const conn = new UserSession(socket, ""); // Create the user session.
+    let info = await conn.getSessionInfo(); // Fetch the session information.
+
+    // Make sure the name and email are provided if the information does not yet exist.
     const params = socket.handshake.query;
-    if ((!params.name && !session.name) || (!params.email && !session.email)) {
+    if (!info && (!params.name || !params.email)) {
       socket.disconnect(true);
       throw new Error(
         "Must provide initial parameters or have previous ones stored."
       );
     }
 
-    // If session parameters are not present, assign them values.
-    if (!session.name && !session.email) {
-      session.name = params.name;
-      session.email = params.email;
-      session.save();
+    // If the information does not exist, create it.
+    if (!info) {
+      const toSet: SessionInfo = {
+        state: true,
+        createdAt: new Date().toISOString(),
+        owner: params as SessionInfo["owner"],
+      };
+      await conn.setSessionInfo(toSet);
+      info = toSet;
     }
 
-    await socket.join(session.id); // Join the room.
-    socket.emit("session:created", session.id); // Tell the client the session ID.
-
-    return new UserSession(socket); // Return class to be used externally.
+    conn.owner = info.owner.name;
+    return conn; // Return class to be used externally.
   }
 
   /**
@@ -101,7 +115,7 @@ export class UserSession {
     } else {
       data = {
         session: this.session.id,
-        name: this.session.name as string,
+        name: this.owner,
         content: message,
         time: new Date().toISOString(),
         ...(initial && { initial: initial }),
@@ -129,22 +143,21 @@ export class UserSession {
   }
 
   /**
+   * Allows you to modify the session information. Any fields not provided will be automatically populated with the current data.
+   * @param data The fields to modify.
+   */
+  public async setSessionInfo(data: Partial<SessionInfo>): Promise<void> {
+    const merged = { ...(await this.getSessionInfo()), ...data };
+    await client.set(`room:${this.session.id}:state`, JSON.stringify(merged));
+  }
+
+  /**
    * Fetches the session information such as its status and owner.
    * @returns The session's information.
    */
-  public async getSessionInfo(): Promise<SessionInfo> {
-    let data = await client.get(`room:${this.session.id}:state`);
-    if (!data) {
-      const newData = JSON.stringify({
-        state: true,
-        time: new Date(),
-      });
-
-      await client.set(`room:${this.session.id}:state`, newData);
-      data = newData;
-    }
-
-    return JSON.parse(data) as SessionInfo;
+  public async getSessionInfo(): Promise<SessionInfo | undefined> {
+    const data = await client.get(`room:${this.session.id}:state`);
+    return data ? (JSON.parse(data) as SessionInfo) : undefined;
   }
 
   /**
