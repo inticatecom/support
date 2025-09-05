@@ -208,6 +208,19 @@ export class AdminSession {
     this.room = room;
 
     this.emit("agent:join", "Agent Test");
+
+    // Define the logic for restoring the user's state if they reconnect to the room.
+    const userReconnect = (theRoom: string) => {
+      if (theRoom === this.room) {
+        this.emit("agent:join", "Agent Test");
+      }
+    };
+
+    userNamespace.adapter.on("join-room", userReconnect);
+
+    this.socket.on("disconnect", () => {
+      userNamespace.adapter.off("join-room", userReconnect);
+    });
   }
 
   /**

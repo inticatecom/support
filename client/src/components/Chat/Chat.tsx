@@ -353,7 +353,7 @@ export default function LiveChat({
           animate={{ scale: 1 }}
           transition={{ duration: 0.05 }}
           onClick={toggle}
-          className="text-lg font-bold fixed bottom-0 right-0 m-5 cursor-pointer bg-[#121212] p-4 rounded-full shadow-lg shadow-black/20 hover:scale-[107%] active:scale-90 transition-transform">
+          className="text-lg font-bold fixed bottom-0 right-0 m-5 cursor-pointer bg-[#121212] border-1 border-white/10 p-4 rounded-full shadow-lg shadow-black/20 hover:scale-[107%] active:scale-90 transition-transform">
           <motion.div
             animate={{
               rotate: open === "true" ? 90 : 0,
@@ -414,35 +414,41 @@ function Window({
     <motion.div
       initial={{ scale: 0 }}
       animate={open ? { scale: 1 } : { scale: 0 }}
-      className="flex flex-col fixed right-0 bottom-0 mr-5 mb-22 bg-[#121212] rounded-xl w-[365px] h-[700px] border-1 border-white/20 box-border origin-bottom-right shadow-lg shadow-black/20">
-      <div className="border-b-[1px] border-white/20 flex justify-between items-center p-3">
-        <div className="flex justify-center items-center gap-2">
-          <button className="cursor-pointer hover:bg-white/10 p-1 rounded-lg transition-colors">
-            <IoIosArrowBack className="text-white/50 text-lg" />
-          </button>
-          <div className="flex justify-center items-center gap-[10px]">
-            {!chatLoading && agent ? (
-              <motion.span
-                className="w-3 aspect-square bg-green-600 outline-[1px] outline-offset-1 outline-green-700 rounded-full"
-                animate={{
-                  outlineWidth: ["4px", "1px"],
-                }}
-                transition={{
-                  duration: 1.5,
-                  repeat: Infinity,
-                  ease: "easeInOut",
-                }}
-              />
-            ) : (
-              <CgSpinner className="text-white animate-spin text-lg" />
+      className="flex flex-col fixed right-0 bottom-0 mr-5 mb-22 bg-[#121212] rounded-xl w-[365px] h-[700px] border-1 border-white/10 box-border origin-bottom-right shadow-lg shadow-black/20">
+      <div
+        className={`border-b-1 border-white/10 flex items-center p-3 ${
+          !sessionLoading ? "justify-between" : "justify-end"
+        }`}>
+        {!sessionLoading && (
+          <div className="flex justify-center items-center gap-2">
+            <button className="cursor-pointer hover:bg-white/10 p-1 rounded-lg transition-colors">
+              <IoIosArrowBack className="text-white/50 text-lg" />
+            </button>
+
+            {!chatLoading && (
+              <div className="flex justify-center items-center gap-[10px]">
+                {agent ? (
+                  <motion.span
+                    className="w-3 aspect-square bg-green-600 outline-[1px] outline-offset-1 outline-green-700 rounded-full"
+                    animate={{
+                      outlineWidth: ["4px", "1px"],
+                    }}
+                    transition={{
+                      duration: 1.5,
+                      repeat: Infinity,
+                      ease: "easeInOut",
+                    }}
+                  />
+                ) : (
+                  <CgSpinner className="text-white animate-spin text-lg" />
+                )}
+                <h2 className="text-white font-semibold text-[14px]">
+                  {agent ? `Connected with ${agent}` : "Waiting for Agent"}
+                </h2>
+              </div>
             )}
-            <h2 className="text-white font-semibold text-[14px]">
-              {!chatLoading && agent
-                ? `Connected with ${agent}`
-                : "Waiting for Agent"}
-            </h2>
           </div>
-        </div>
+        )}
         <button
           className="cursor-pointer hover:bg-white/10 p-1 rounded-lg transition-colors"
           onClick={useCallback(() => {
@@ -452,33 +458,35 @@ function Window({
         </button>
       </div>
 
-      {!chatLoading ? (
+      {!sessionLoading ? (
         <div className="flex flex-col-reverse gap-3 p-4 grow-[1] overflow-y-auto">
-          <div className="flex flex-col gap-3">
-            {messages.map((message, index) => {
-              if (!("session" in message)) {
-                return (
-                  <p
-                    key={index}
-                    className="text-white/50 self-center text-center text-sm">
-                    {message.content}
-                  </p>
-                );
-              } else {
-                return (
-                  <Bubble
-                    key={index}
-                    session={message.session}
-                    name={message.name}
-                    message={message.content}
-                    time={message.time}
-                    mostRecent={index === messages.length - 1}
-                    mode={message.local ? "secondary" : "primary"}
-                  />
-                );
-              }
-            })}
-          </div>
+          {messages.length > 0 && (
+            <div className="flex flex-col gap-3">
+              {messages.map((message, index) => {
+                if (!("session" in message)) {
+                  return (
+                    <p
+                      key={index}
+                      className="text-white/50 self-center text-center text-sm">
+                      {message.content}
+                    </p>
+                  );
+                } else {
+                  return (
+                    <Bubble
+                      key={index}
+                      session={message.session}
+                      name={message.name}
+                      message={message.content}
+                      time={message.time}
+                      mostRecent={index === messages.length - 1}
+                      mode={message.local ? "secondary" : "primary"}
+                    />
+                  );
+                }
+              })}
+            </div>
+          )}
         </div>
       ) : (
         <div className="grow-[1] flex justify-center items-center">
@@ -552,7 +560,9 @@ function Bubble({
   mostRecent,
 }: Definitions.BubbleProps) {
   return (
-    <div
+    <motion.div
+      initial={{ y: 5, opacity: 0 }}
+      animate={{ y: 0, opacity: 1 }}
       className={`flex flex-col w-11/12 ${mode === "secondary" && "self-end"}`}>
       <p
         className={`text-white p-3 rounded-lg w-full hyphens-auto break-words whitespace-pre-wrap ${
@@ -570,6 +580,6 @@ function Bubble({
           {name} • {moment(time).fromNow()}
         </p>
       )}
-    </div>
+    </motion.div>
   );
 }
