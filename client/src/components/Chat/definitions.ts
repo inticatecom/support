@@ -34,18 +34,15 @@ export interface WindowProps {
 }
 
 /** Properties to be attached to the chat box. */
-export type FormProps = Omit<
+export type FormProps = Pick<
   WindowProps,
-  "open" | "setOpen" | "messages" | "chatLoading" | "sessionLoading" | "agent"
+  "showNotice" | "setNotice" | "sendMessage" | "startSession"
 >;
 
 /** Properties to be attached to a message displayed in the main component. */
-export interface BubbleProps
-  extends Pick<Message, "session" | "name" | "time"> {
+export interface BubbleProps extends Omit<Message, "local"> {
   /** The color scheme of the chat bubble. */
   mode?: "primary" | "secondary";
-  /** The content of the message. */
-  message: string;
   /** Whether or not the message is the most recent one in the list. */
   mostRecent?: boolean;
 }

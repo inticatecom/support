@@ -475,10 +475,11 @@ function Window({
                       key={index}
                       session={message.session}
                       name={message.name}
-                      message={message.content}
+                      content={message.content}
                       time={message.time}
                       mostRecent={index === messages.length - 1}
                       mode={message.local ? "secondary" : "primary"}
+                      initial={message.initial}
                     />
                   );
                 }
@@ -555,14 +556,15 @@ function Form({
 function Bubble({
   mode,
   name,
-  message,
+  content,
   time,
   mostRecent,
+  initial,
 }: Definitions.BubbleProps) {
   return (
     <motion.div
-      initial={{ y: 5, opacity: 0 }}
-      animate={{ y: 0, opacity: 1 }}
+      initial={!initial && { y: 5, opacity: 0 }}
+      animate={!initial && { y: 0, opacity: 1 }}
       className={`flex flex-col w-11/12 ${mode === "secondary" && "self-end"}`}>
       <p
         className={`text-white p-3 rounded-lg w-full hyphens-auto break-words whitespace-pre-wrap ${
@@ -570,7 +572,7 @@ function Bubble({
             ? "bg-white/10"
             : "bg-blue-500/10 self-end"
         }`}>
-        {message}
+        {content}
       </p>
       {mostRecent && (
         <p

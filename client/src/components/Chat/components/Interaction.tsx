@@ -1,3 +1,6 @@
+// Resources
+import Gif from "../assets/images/gif.svg";
+
 // Hooks
 import { useAnimate } from "motion/react";
 import { useCallback, useRef, useState } from "react";
@@ -14,7 +17,6 @@ import { IoSend } from "react-icons/io5";
 import { CgSpinner } from "react-icons/cg";
 import { MdEmojiEmotions } from "react-icons/md";
 import { IoClose } from "react-icons/io5";
-import Gif from "../assets/images/gif.svg";
 
 // Variables
 const emojiList = [
@@ -164,14 +166,22 @@ export function ChatBox({ onSend }: Definitions.ChatBoxProps) {
    * emojis and GIF menu.
    */
   function ActionRow() {
+    // Hooks
+    const { emojisOpen, setEmojisOpen } = useChatStore();
+
+    // Variables
     const items: { icon: React.ReactNode; onClick: () => void }[] = [
       {
         icon: (
-          <MdEmojiEmotions className="text-white/50 text-[18px] hover:text-white" />
+          <MdEmojiEmotions
+            className={`text-[18px] hover:text-white ${
+              !emojisOpen ? "text-white/50" : "text-white"
+            }`}
+          />
         ),
         onClick: useCallback(() => {
-          console.log("clicked emojis");
-        }, []),
+          setEmojisOpen(!emojisOpen);
+        }, [emojisOpen, setEmojisOpen]),
       },
       {
         icon: (
