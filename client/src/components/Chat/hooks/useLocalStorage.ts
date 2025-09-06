@@ -1,6 +1,7 @@
 // Resources
 import { useCallback, useState } from "react";
 
+// Types
 export type SetStorage = (value: string) => void;
 
 /**

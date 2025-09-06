@@ -7,13 +7,18 @@ import { io, Socket } from "socket.io-client";
 import { useEffect, useRef, useState, useCallback } from "react";
 import useSound from "use-sound";
 import useLocalStorage from "./hooks/useLocalStorage";
+import { useChatStore } from "./hooks/useChatStore";
 
 // Components
-import { Chat, Consent, StartSession } from "./components/Interaction";
+import {
+  ChatBox,
+  Consent,
+  StartSession,
+  EmojiMenu,
+} from "./components/Interaction";
 
 // Definitions
 import { Definitions } from ".";
-type ChatMessage = Definitions.Message | Definitions.SystemMessage;
 
 // Settings
 const BACKEND_URL_BASE: string = "http://localhost:3000";
@@ -34,14 +39,16 @@ import { CgSpinner } from "react-icons/cg";
 export default function LiveChat({
   visible = true,
 }: Definitions.LiveChatProps) {
-  // States
-  const [loading, setLoading] = useState<boolean>(true);
-  const [sessionLoading, setSessionLoading] = useState<boolean>(true);
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [sending, setSending] = useState<boolean>(false);
-  const [session, setSession] = useState<string | null>(null);
-  const [showPrompt, setShowPrompt] = useState<boolean>(true);
-  const [agent, setAgent] = useState<string | null>(null);
+  const {
+    setSessionId,
+    sessionId,
+    setSessionLoading,
+    setAgent,
+    setLoading,
+    setShowPrompt,
+    setMessages,
+    setSending,
+  } = useChatStore();
 
   // References
   const socketRef = useRef<Socket>(null);
@@ -73,7 +80,6 @@ export default function LiveChat({
         }
 
         // Create Socket.io client.
-        console.log(params);
         const socket = io(`${BACKEND_URL_BASE}/users`, {
           withCredentials: true,
           query: params,
@@ -97,7 +103,7 @@ export default function LiveChat({
            * Triggers when the session connects, allowing the client to receive the session ID.
            */
           socket.once("session:created", (id: string) => {
-            setSession(id);
+            setSessionId(id);
             sessionRef.current = id;
           });
 
@@ -185,7 +191,7 @@ export default function LiveChat({
          * Adds a message and then sorts by the most recently sent message.
          * @param message The message to append. Either a user or system message.
          */
-        function addMessage(message: ChatMessage): void {
+        function addMessage(message: Definitions.ChatMessage): void {
           /**
            * Combines and sorts the old data and the newly appended value by date.
            * @param previous The current data.
@@ -193,9 +199,9 @@ export default function LiveChat({
            * @returns The sorted data.
            */
           function sort(
-            previous: ChatMessage[],
-            append: ChatMessage
-          ): ChatMessage[] {
+            previous: Definitions.ChatMessage[],
+            append: Definitions.ChatMessage
+          ): Definitions.ChatMessage[] {
             const newMessages = [...previous, append];
             return newMessages.sort(
               (a, b) => a.time.getTime() - b.time.getTime()
@@ -204,7 +210,6 @@ export default function LiveChat({
 
           setMessages((prev) => {
             if ("session" in message) {
-              console.log(message);
               const msg: Definitions.Message = {
                 ...message,
                 session: message.session,
@@ -225,6 +230,7 @@ export default function LiveChat({
         }
       });
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [playReceive]
   );
 
@@ -250,7 +256,7 @@ export default function LiveChat({
     return () => {
       socketRef.current?.disconnect();
     };
-  }, [establishConn]);
+  }, [establishConn, setSessionLoading]);
 
   /**
    * Update the session reference whenever the session state changes. We do this to prevent re-rendering
@@ -258,8 +264,8 @@ export default function LiveChat({
    * to the client's interface.
    */
   useEffect(() => {
-    sessionRef.current = session;
-  }, [session]);
+    sessionRef.current = sessionId;
+  }, [sessionId]);
 
   /**
    * The event for when the client submits the details form which will then initiate the session by connecting to the socket in the backend.
@@ -319,7 +325,7 @@ export default function LiveChat({
         );
       });
     },
-    [playSend]
+    [playSend, setSending]
   );
 
   /**
@@ -338,14 +344,8 @@ export default function LiveChat({
             setOpen={setOpen}
             showNotice={notice === "true"}
             setNotice={setNotice}
-            chatLoading={loading}
-            sessionLoading={sessionLoading}
             sendMessage={postMessage}
-            sending={sending}
-            messages={messages}
             startSession={startSession}
-            prompt={showPrompt}
-            agent={agent}
           />
         )}
         <motion.button
@@ -401,15 +401,13 @@ function Window({
   setOpen,
   showNotice,
   setNotice,
-  chatLoading,
-  sessionLoading,
   sendMessage,
-  sending,
-  messages,
   startSession,
-  prompt,
-  agent,
 }: Definitions.WindowProps) {
+  // Hooks
+  const { loading, sessionLoading, agent, messages, emojisOpen } =
+    useChatStore();
+
   return (
     <motion.div
       initial={{ scale: 0 }}
@@ -425,7 +423,7 @@ function Window({
               <IoIosArrowBack className="text-white/50 text-lg" />
             </button>
 
-            {!chatLoading && (
+            {!loading && (
               <div className="flex justify-center items-center gap-[10px]">
                 {agent ? (
                   <motion.span
@@ -459,7 +457,7 @@ function Window({
       </div>
 
       {!sessionLoading ? (
-        <div className="flex flex-col-reverse gap-3 p-4 grow-[1] overflow-y-auto">
+        <div className="relative flex flex-col-reverse gap-3 p-4 grow-[1] overflow-y-auto">
           {messages.length > 0 && (
             <div className="flex flex-col gap-3">
               {messages.map((message, index) => {
@@ -487,6 +485,7 @@ function Window({
               })}
             </div>
           )}
+          {emojisOpen && <EmojiMenu />}
         </div>
       ) : (
         <div className="grow-[1] flex justify-center items-center">
@@ -499,8 +498,6 @@ function Window({
           showNotice={showNotice}
           setNotice={setNotice}
           sendMessage={sendMessage}
-          sending={sending}
-          prompt={prompt}
           startSession={startSession}
         />
       )}
@@ -515,10 +512,11 @@ function Form({
   showNotice,
   setNotice,
   sendMessage,
-  sending,
-  prompt,
   startSession,
 }: Definitions.FormProps) {
+  // Hooks
+  const { showPrompt } = useChatStore();
+
   // States
   const [connecting, setConnecting] = useState<boolean>(false);
 
@@ -542,8 +540,10 @@ function Form({
 
   return (
     <div className="self-end w-full flex flex-col justify-end gap-3 pb-4 px-4">
-      {!prompt && <Chat onSend={sendMessage} sending={sending} />}
-      {prompt && <StartSession onConnect={connect} connecting={connecting} />}
+      {!showPrompt && <ChatBox onSend={sendMessage} />}
+      {showPrompt && (
+        <StartSession onConnect={connect} connecting={connecting} />
+      )}
       {showNotice && <Consent onDismiss={() => setNotice("false")} />}
     </div>
   );

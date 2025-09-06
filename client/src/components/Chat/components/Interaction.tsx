@@ -1,9 +1,13 @@
-// Resources
+// Hooks
 import { useAnimate } from "motion/react";
 import { useCallback, useRef, useState } from "react";
+import { useChatStore } from "../hooks/useChatStore";
 
 // Components
-import TextareaAutoSize from "react-textarea-autosize";
+import TextAreaAutoSize from "react-textarea-autosize";
+
+// Definitions
+import type { Definitions } from "..";
 
 // Icons
 import { IoSend } from "react-icons/io5";
@@ -12,29 +16,46 @@ import { MdEmojiEmotions } from "react-icons/md";
 import { IoClose } from "react-icons/io5";
 import Gif from "../assets/images/gif.svg";
 
-// Interfaces
-interface ChatProps {
-  onSend: (e: React.FormEvent<HTMLFormElement>) => Promise<boolean>;
-  sending: boolean;
-}
-interface StartSessionProps {
-  onConnect: (e: React.FormEvent<HTMLFormElement>) => void;
-  connecting: boolean;
-}
-interface ConsentProps {
-  onDismiss: () => void;
-}
+// Variables
+const emojiList = [
+  { emoji: "😀", name: "grinning" },
+  { emoji: "😂", name: "laughing" },
+  { emoji: "🥰", name: "loving" },
+  { emoji: "😍", name: "heart eyes" },
+  { emoji: "🤗", name: "hugging" },
+  { emoji: "😊", name: "smiling" },
+  { emoji: "😎", name: "cool" },
+  { emoji: "🤔", name: "thinking" },
+  { emoji: "😢", name: "crying" },
+  { emoji: "😭", name: "sobbing" },
+  { emoji: "😡", name: "angry" },
+  { emoji: "🥺", name: "pleading" },
+  { emoji: "😴", name: "sleeping" },
+  { emoji: "🤯", name: "mind blown" },
+  { emoji: "🥳", name: "party" },
+  { emoji: "👍", name: "thumbs up" },
+  { emoji: "👏", name: "clapping" },
+  { emoji: "🙌", name: "raised hands" },
+  { emoji: "💪", name: "strong" },
+  { emoji: "🤝", name: "handshake" },
+  { emoji: "❤️", name: "heart" },
+  { emoji: "💯", name: "hundred" },
+  { emoji: "🔥", name: "fire" },
+  { emoji: "✨", name: "sparkles" },
+  { emoji: "🎉", name: "celebration" },
+];
 
 /**
  * The base chat input. Allows for the client to send a message (string) to the current session
  * so other clients connected to the socket can see it.
  */
-export function Chat({ onSend, sending }: ChatProps) {
+export function ChatBox({ onSend }: Definitions.ChatBoxProps) {
   // States
   const [sendable, setSendable] = useState<boolean>(false);
 
   // Hooks
   const [error, playError] = useAnimate();
+  const { sending } = useChatStore();
 
   // References
   const form = useRef<HTMLFormElement>(null);
@@ -105,7 +126,7 @@ export function Chat({ onSend, sending }: ChatProps) {
         ref={error}
         className="rounded-xl bg-white/10 text-white p-3 w-full outline-offset-[2.7px] outline-white/30 focus-within:outline-[2.5] flex flex-col gap-2 cursor-text has-[:disabled]:text-white/50">
         <div className="flex justify-between gap-2 items-center w-full">
-          <TextareaAutoSize
+          <TextAreaAutoSize
             className="outline-none w-full resize-none disabled:cursor-not-allowed"
             placeholder="Ask a question ..."
             disabled={sending}
@@ -186,7 +207,10 @@ export function Chat({ onSend, sending }: ChatProps) {
  * The form for allowing the user to initially enter their details; allows the session to start
  * by providing details like their name and email address.
  */
-export function StartSession({ onConnect, connecting }: StartSessionProps) {
+export function StartSession({
+  onConnect,
+  connecting,
+}: Definitions.StartSessionProps) {
   return (
     <form
       className="flex flex-col rounded-xl p-4 gap-2 bg-white/2 border-1 border-white/10"
@@ -230,7 +254,7 @@ export function StartSession({ onConnect, connecting }: StartSessionProps) {
  * A notice to be displayed at the bottom of the chat window unless dismissed to allow the client
  * to understand the terms and privacy policies they agree to when continuing.
  */
-export function Consent({ onDismiss }: ConsentProps) {
+export function Consent({ onDismiss }: Definitions.ConsentProps) {
   return (
     <div className="flex justify-center items-center gap-2 bg-white/10 rounded-xl p-3">
       <p className="text-white/50 text-sm">
@@ -256,6 +280,49 @@ export function Consent({ onDismiss }: ConsentProps) {
         className="cursor-pointer hover:bg-white/10 p-1 rounded-lg transition-colors">
         <IoClose className="text-white text-xl" />
       </button>
+    </div>
+  );
+}
+
+export function EmojiMenu() {
+  // States
+  const [emojis, setEmojis] =
+    useState<{ emoji: string; name: string }[]>(emojiList);
+
+  const onSelect = useCallback<(emoji: string) => void>((emoji) => {
+    console.log(emoji);
+  }, []);
+
+  const onChanged = useCallback<(value: string) => void>((value) => {
+    if (value.length > 0) {
+      setEmojis(
+        emojiList.filter((emoji) =>
+          emoji.name.toLowerCase().includes(value.toLowerCase())
+        )
+      );
+    } else {
+      setEmojis(emojiList);
+    }
+  }, []);
+
+  return (
+    <div className="absolute bottom-0 left-4 right-4 mb-3 z-10 bg-[#272727] rounded-xl p-3 border-1 border-white/10 h-[200px] flex flex-col">
+      <input
+        type="text"
+        placeholder="Search here ..."
+        onChange={(e) => onChanged(e.target.value)}
+        className="border-1 border-white/10 outline-none rounded-xl p-2 text-white text-sm mb-2 w-full flex-shrink-0"
+      />
+      <div className="grid grid-cols-8 text-xl overflow-y-auto flex-1 h-0">
+        {emojis.map((emoji, index) => (
+          <button
+            key={index}
+            className="cursor-pointer hover:scale-105 transition-transform aspect-square flex items-center justify-center"
+            onClick={(e) => onSelect(e.currentTarget.innerText)}>
+            {emoji.emoji}
+          </button>
+        ))}
+      </div>
     </div>
   );
 }
