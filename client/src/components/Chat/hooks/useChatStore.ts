@@ -2,7 +2,7 @@
 import { create } from "zustand";
 
 // Definitions
-import { Definitions } from "..";
+import type { Definitions } from "..";
 type StateUpdater<T> = T | ((prev: T) => T);
 interface ChatStore {
   // States

@@ -18,7 +18,7 @@ import {
 } from "./components/Interaction";
 
 // Definitions
-import { Definitions } from ".";
+import type { Definitions } from ".";
 
 // Settings
 const BACKEND_URL_BASE: string = "http://localhost:3000";
