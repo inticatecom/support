@@ -486,11 +486,16 @@ function Window({
               })}
             </div>
           )}
-          {emojisOpen && <EmojiMenu />}
         </div>
       ) : (
         <div className="grow-[1] flex justify-center items-center">
           <CgSpinner className="text-white text-4xl animate-spin" />
+        </div>
+      )}
+
+      {emojisOpen && (
+        <div className="relative">
+          <EmojiMenu />
         </div>
       )}
 

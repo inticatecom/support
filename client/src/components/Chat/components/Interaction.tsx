@@ -1,5 +1,6 @@
 // Resources
 import Gif from "../assets/images/gif.svg";
+import { motion } from "motion/react";
 
 // Hooks
 import { useAnimate } from "motion/react";
@@ -17,6 +18,7 @@ import { IoSend } from "react-icons/io5";
 import { CgSpinner } from "react-icons/cg";
 import { MdEmojiEmotions } from "react-icons/md";
 import { IoClose } from "react-icons/io5";
+import { CiSearch } from "react-icons/ci";
 
 // Variables
 const emojiList = [
@@ -176,7 +178,7 @@ export function ChatBox({ onSend }: Definitions.ChatBoxProps) {
           <MdEmojiEmotions
             className={`text-[18px] hover:text-white ${
               !emojisOpen ? "text-white/50" : "text-white"
-            }`}
+            }  transition-colors`}
           />
         ),
         onClick: useCallback(() => {
@@ -188,7 +190,7 @@ export function ChatBox({ onSend }: Definitions.ChatBoxProps) {
           <img
             src={Gif}
             draggable={false}
-            className="aspect-square w-4 filter brightness-0 invert opacity-50 hover:opacity-100"
+            className="aspect-square w-4 filter brightness-0 invert opacity-50 hover:opacity-100 transition-opacity"
           />
         ),
         onClick: useCallback(() => {
@@ -294,15 +296,31 @@ export function Consent({ onDismiss }: Definitions.ConsentProps) {
   );
 }
 
+/**
+ * The emoji menu allowing the client to search for basic emojis and insert them into the
+ * chat box.
+ */
 export function EmojiMenu() {
+  // Hooks
+  const { setEmojisOpen } = useChatStore();
+
   // States
-  const [emojis, setEmojis] =
-    useState<{ emoji: string; name: string }[]>(emojiList);
+  const [emojis, setEmojis] = useState<typeof emojiList>(emojiList);
 
-  const onSelect = useCallback<(emoji: string) => void>((emoji) => {
-    console.log(emoji);
-  }, []);
+  /**
+   * Triggers when an emoji is selected.
+   */
+  const onSelect = useCallback<(emoji: string) => void>(
+    (emoji) => {
+      console.log(emoji);
+      setEmojisOpen(false);
+    },
+    [setEmojisOpen]
+  );
 
+  /**
+   * Triggers when the emoji search input's value is changed.
+   */
   const onChanged = useCallback<(value: string) => void>((value) => {
     if (value.length > 0) {
       setEmojis(
@@ -316,23 +334,43 @@ export function EmojiMenu() {
   }, []);
 
   return (
-    <div className="absolute bottom-0 left-4 right-4 mb-3 z-10 bg-[#272727] rounded-xl p-3 border-1 border-white/10 h-[200px] flex flex-col">
-      <input
-        type="text"
-        placeholder="Search here ..."
-        onChange={(e) => onChanged(e.target.value)}
-        className="border-1 border-white/10 outline-none rounded-xl p-2 text-white text-sm mb-2 w-full flex-shrink-0"
-      />
-      <div className="grid grid-cols-8 text-xl overflow-y-auto flex-1 h-0">
-        {emojis.map((emoji, index) => (
-          <button
-            key={index}
-            className="cursor-pointer hover:scale-105 transition-transform aspect-square flex items-center justify-center"
-            onClick={(e) => onSelect(e.currentTarget.innerText)}>
-            {emoji.emoji}
-          </button>
-        ))}
+    <motion.div
+      initial={{ y: "100%", opacity: 0 }}
+      animate={{ y: "0%", opacity: 1 }}
+      transition={{ duration: 0.07 }}
+      className="absolute bottom-0 left-4 right-4 mb-3 z-10 bg-[#272727] rounded-xl p-3 border-1 border-white/10 h-[200px] flex flex-col">
+      <div className="flex gap-2 justify-between items-center mb-2">
+        <label className="flex items-center gap-2 border-1 border-white/10 rounded-xl p-2 text-sm text-white flex-grow-1 flex-shrink-0 focus-within:border-white">
+          <CiSearch className="text-lg text-white/50" />
+          <input
+            type="text"
+            placeholder="Search for emojis ..."
+            onChange={(e) => onChanged(e.target.value)}
+            className="outline-none"
+          />
+        </label>
+        <button
+          className="cursor-pointer hover:bg-white/10 p-1 rounded-lg transition-colors"
+          onClick={useCallback(() => setEmojisOpen(false), [setEmojisOpen])}>
+          <IoClose className="text-white/50 text-xl" />
+        </button>
       </div>
-    </div>
+      {emojis.length > 0 ? (
+        <div className="grid grid-cols-8 text-xl overflow-y-auto flex-1 h-0 py-1">
+          {emojis.map((emoji, index) => (
+            <button
+              key={index}
+              className="cursor-pointer hover:scale-105 transition-transform aspect-square flex items-center justify-center"
+              onClick={(e) => onSelect(e.currentTarget.innerText)}>
+              {emoji.emoji}
+            </button>
+          ))}
+        </div>
+      ) : (
+        <div className="flex justify-center items-center w-full h-8/12">
+          <p className="text-center text-white/50">No results found.</p>
+        </div>
+      )}
+    </motion.div>
   );
 }
