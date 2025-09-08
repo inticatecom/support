@@ -176,8 +176,8 @@ export function ChatBox({ onSend }: Definitions.ChatBoxProps) {
       {
         icon: (
           <MdEmojiEmotions
-            className={`text-[18px] hover:text-white ${
-              !emojisOpen ? "text-white/50" : "text-white"
+            className={`text-[18px] hover:text-white/70 ${
+              !emojisOpen ? "text-white/30" : "text-white/70"
             }  transition-colors`}
           />
         ),
@@ -190,7 +190,7 @@ export function ChatBox({ onSend }: Definitions.ChatBoxProps) {
           <img
             src={Gif}
             draggable={false}
-            className="aspect-square w-4 filter brightness-0 invert opacity-50 hover:opacity-100 transition-opacity"
+            className="aspect-square w-4 filter brightness-0 invert opacity-30 hover:opacity-70 transition-opacity"
           />
         ),
         onClick: useCallback(() => {
@@ -297,6 +297,42 @@ export function Consent({ onDismiss }: Definitions.ConsentProps) {
 }
 
 /**
+ * Represents a popup window in the chat box allowing you to display things like emoji menus and GIF menus.
+ */
+function ChatMenu({
+  children,
+  searchPlaceholder,
+  onClose,
+  onSearchChange,
+}: Definitions.ChatMenuProps) {
+  return (
+    <motion.div
+      initial={{ y: "100%", opacity: 0 }}
+      animate={{ y: "0%", opacity: 1 }}
+      transition={{ duration: 0.07 }}
+      className="absolute bottom-0 left-4 right-4 mb-3 z-10 bg-[#272727] rounded-xl p-3 border-1 border-white/10 h-[200px] flex flex-col">
+      <div className="flex gap-2 justify-between items-center mb-2">
+        <label className="flex items-center gap-2 border-1 border-white/10 rounded-xl p-2 text-sm text-white flex-grow-1 flex-shrink-0 focus-within:border-white">
+          <CiSearch className="text-lg text-white/50" />
+          <input
+            type="text"
+            placeholder={searchPlaceholder}
+            onChange={onSearchChange}
+            className="outline-none"
+          />
+        </label>
+        <button
+          className="cursor-pointer hover:bg-white/10 p-1 rounded-lg transition-colors"
+          onClick={onClose}>
+          <IoClose className="text-white/50 text-xl" />
+        </button>
+      </div>
+      {children}
+    </motion.div>
+  );
+}
+
+/**
  * The emoji menu allowing the client to search for basic emojis and insert them into the
  * chat box.
  */
@@ -334,29 +370,12 @@ export function EmojiMenu() {
   }, []);
 
   return (
-    <motion.div
-      initial={{ y: "100%", opacity: 0 }}
-      animate={{ y: "0%", opacity: 1 }}
-      transition={{ duration: 0.07 }}
-      className="absolute bottom-0 left-4 right-4 mb-3 z-10 bg-[#272727] rounded-xl p-3 border-1 border-white/10 h-[200px] flex flex-col">
-      <div className="flex gap-2 justify-between items-center mb-2">
-        <label className="flex items-center gap-2 border-1 border-white/10 rounded-xl p-2 text-sm text-white flex-grow-1 flex-shrink-0 focus-within:border-white">
-          <CiSearch className="text-lg text-white/50" />
-          <input
-            type="text"
-            placeholder="Search for emojis ..."
-            onChange={(e) => onChanged(e.target.value)}
-            className="outline-none"
-          />
-        </label>
-        <button
-          className="cursor-pointer hover:bg-white/10 p-1 rounded-lg transition-colors"
-          onClick={useCallback(() => setEmojisOpen(false), [setEmojisOpen])}>
-          <IoClose className="text-white/50 text-xl" />
-        </button>
-      </div>
+    <ChatMenu
+      searchPlaceholder="Search for emojis ..."
+      onSearchChange={(e) => onChanged(e.currentTarget.value)}
+      onClose={useCallback(() => setEmojisOpen(false), [setEmojisOpen])}>
       {emojis.length > 0 ? (
-        <div className="grid grid-cols-8 text-xl overflow-y-auto flex-1 h-0 py-1">
+        <div className="grid grid-cols-8 text-xl overflow-y-auto overflow-x-hidden flex-1 h-0 py-1">
           {emojis.map((emoji, index) => (
             <button
               key={index}
@@ -371,6 +390,6 @@ export function EmojiMenu() {
           <p className="text-center text-white/50">No results found.</p>
         </div>
       )}
-    </motion.div>
+    </ChatMenu>
   );
 }

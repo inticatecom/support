@@ -88,3 +88,15 @@ export interface ConsentProps {
   /** The function to run when the user dismissed the consent notice. */
   onDismiss: () => void;
 }
+
+/** Properties attached to the chat menu component. */
+export interface ChatMenuProps {
+  /** The content of the menu. */
+  children: React.ReactNode;
+  /** The placeholder for the search input. */
+  searchPlaceholder?: string;
+  /** The event that triggers when the client closes the menu. */
+  onClose?: (e: React.MouseEvent<HTMLButtonElement>) => void;
+  /** The event that triggers when the search input's value changed. */
+  onSearchChange?: React.ChangeEventHandler<HTMLInputElement>;
+}
