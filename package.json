@@ -5,7 +5,8 @@
   "version": "1.0.0",
   "workspaces": [
     "client",
-    "server"
+    "server",
+    "admin"
   ],
   "scripts": {
     "start": "echo start",
@@ -14,10 +15,13 @@
     "build": "concurrently --raw \"npm run build:client\" \"npm run build:server\"",
     "dev:client": "cd client && vite",
     "dev:server": "tsx --watch server/src/index.ts",
+    "dev:admin": "cd admin && next dev -p 3001 --turbopack",
     "build:client": "cd client && tsc -b && vite build",
     "build:server": "cd server && tsc",
+    "build:admin": "cd admin && next build --turbopack",
     "lint:server": "cd server && eslint .",
-    "lint:client": "cd client && eslint ."
+    "lint:client": "cd client && eslint .",
+    "lint:admin": "cd admin && eslint ."
   },
   "devDependencies": {
     "concurrently": "^9.2.1"
