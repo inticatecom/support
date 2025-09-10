@@ -86,13 +86,14 @@ export default function Login() {
             register={register("password")}
             error={errors.password?.message}
           />
-          <Button type="submit" loading={submitting}>
+          <Button type="submit" loading={submitting} disabled={submitting}>
             Login
           </Button>
           <Separator label="Connections" />
           <Button
             type="button"
             scheme="secondary"
+            disabled={submitting}
             className="flex justify-center items-center gap-2">
             <FaGithub className="text-lg" />
             <p>Continue with GitHub</p>

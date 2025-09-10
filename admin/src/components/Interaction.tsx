@@ -12,6 +12,7 @@ type ButtonProps = {
   scheme?: "primary" | "secondary";
   onClick?: (e: React.MouseEvent<HTMLButtonElement>) => void;
   loading?: boolean;
+  disabled?: boolean;
 } & Class &
   Children;
 type InputProps = {
@@ -42,6 +43,7 @@ export function Button({
   scheme,
   onClick,
   loading,
+  disabled,
 }: ButtonProps) {
   return (
     <button
@@ -51,12 +53,16 @@ export function Button({
           "bg-[#151515] border-1 border-white/10 text-white hover:bg-[#181818]",
         loading &&
           (scheme === "secondary"
-            ? "bg-[#101010] hover:bg-[#101010]"
-            : "bg-gray-300 hover:bg-gray-300"),
+            ? "bg-[#070707] hover:bg-[#070707] text-white/50"
+            : "bg-gray-300 hover:bg-gray-300 text-black/50"),
+        disabled &&
+          (scheme === "secondary"
+            ? "bg-[#070707] hover:bg-[#070707] text-white/50"
+            : "bg-gray-300 hover:bg-gray-300 text-black/50"),
         className
       )}
       type={type}
-      disabled={loading}
+      disabled={loading || disabled}
       onClick={onClick}>
       {!loading ? (
         children
