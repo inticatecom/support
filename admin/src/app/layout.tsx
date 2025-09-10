@@ -17,7 +17,10 @@ const geistMono = Geist_Mono({
 
 // Metadata
 export const metadata: Metadata = {
-  title: "Agent Panel",
+  title: {
+    template: "%s | Agent Dashboard",
+    default: "Agent Dashboard",
+  },
 };
 
 export default function RootLayout({

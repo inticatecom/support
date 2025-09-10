@@ -1,12 +1,17 @@
 // Resources
 import { cn } from "@/lib/utility";
 
+// Components
+import Link from "next/link";
+
 // Definitions
 import { Class, Children } from "@/lib/definitions";
-import Link from "next/link";
+import type { UseFormRegisterReturn } from "react-hook-form";
 type ButtonProps = {
   type?: "submit" | "button";
   scheme?: "primary" | "secondary";
+  onClick?: (e: React.MouseEvent<HTMLButtonElement>) => void;
+  loading?: boolean;
 } & Class &
   Children;
 type InputProps = {
@@ -15,26 +20,54 @@ type InputProps = {
   withAsterix?: boolean;
   type?: "text" | "password";
   rightSide?: React.ReactNode;
+  disabled?: boolean;
+  error?: string;
+  register?: UseFormRegisterReturn;
 } & Class;
 type TextLinkProps = {
   children: string;
   href: string;
 } & Class;
 
+// Icons
+import { CgSpinner } from "react-icons/cg";
+
 /**
  * A base button component.
  */
-export function Button({ children, type, className, scheme }: ButtonProps) {
+export function Button({
+  children,
+  type,
+  className,
+  scheme,
+  onClick,
+  loading,
+}: ButtonProps) {
   return (
     <button
       className={cn(
-        "bg-gray-100 px-2 py-[6px] rounded-md font-semibold hover:bg-white cursor-pointer transition-colors",
+        "flex justify-center items-center bg-gray-100 px-2 py-[6px] rounded-md font-semibold hover:bg-white cursor-pointer disabled:cursor-not-allowed transition-colors",
         scheme === "secondary" &&
           "bg-[#151515] border-1 border-white/10 text-white hover:bg-[#181818]",
+        loading &&
+          (scheme === "secondary"
+            ? "bg-[#101010] hover:bg-[#101010]"
+            : "bg-gray-300 hover:bg-gray-300"),
         className
       )}
-      type={type}>
-      {children}
+      type={type}
+      disabled={loading}
+      onClick={onClick}>
+      {!loading ? (
+        children
+      ) : (
+        <CgSpinner
+          className={cn(
+            "text-2xl animate-spin",
+            scheme === "secondary" && "text-white"
+          )}
+        />
+      )}
     </button>
   );
 }
@@ -70,14 +103,21 @@ export function Input(props: InputProps) {
         )}
         {props.rightSide}
       </div>
-      <input
-        placeholder={props.placeholder}
-        type={props.type}
-        className={cn(
-          "text-white bg-[#151515] border-1 border-white/10 px-3 py-2 rounded-md outline-none focus:border-white",
-          props.className
-        )}
-      />
+      <div className="flex flex-col gap-[1px]">
+        <input
+          placeholder={props.placeholder}
+          type={props.type}
+          disabled={props.disabled}
+          className={cn(
+            "text-white bg-[#151515] border-1 border-white/10 px-3 py-2 rounded-md outline-none focus:border-white disabled:cursor-not-allowed",
+            props.disabled && "bg-[#070707] text-white/50",
+            props.className,
+            props.error && "border-red-400 focus:border-red-500"
+          )}
+          {...props.register}
+        />
+        {props.error && <p className="text-red-400 text-sm">{props.error}</p>}
+      </div>
     </label>
   );
 }
