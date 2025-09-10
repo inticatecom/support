@@ -20,6 +20,7 @@ type InputProps = {
   placeholder?: string;
   withAsterix?: boolean;
   type?: "text" | "password";
+  hint?: React.ReactNode;
   rightSide?: React.ReactNode;
   disabled?: boolean;
   error?: string;
@@ -107,20 +108,24 @@ export function Input(props: InputProps) {
             {props.withAsterix && <span className="text-red-400"> *</span>}
           </p>
         )}
-        {props.rightSide}
+        {props.hint}
       </div>
       <div className="flex flex-col gap-[1px]">
-        <input
-          placeholder={props.placeholder}
-          type={props.type}
-          disabled={props.disabled}
+        <div
           className={cn(
-            "text-white bg-[#151515] border-1 border-white/10 px-3 py-2 rounded-md outline-none focus:border-white disabled:cursor-not-allowed",
+            "flex justify-between items-center gap-1 text-white bg-[#151515] border-1 border-white/10 px-3 py-2 rounded-md focus-within:border-white",
             props.disabled && "bg-[#070707] text-white/50",
-            props.error && "border-red-400 focus:border-red-500"
-          )}
-          {...props.register}
-        />
+            props.error && "border-red-400 focus-within:border-red-500"
+          )}>
+          <input
+            placeholder={props.placeholder}
+            type={props.type}
+            disabled={props.disabled}
+            className="outline-none flex-grow-1 disabled:cursor-not-allowed"
+            {...props.register}
+          />
+          {props.rightSide}
+        </div>
         {props.error && <p className="text-red-400 text-sm">{props.error}</p>}
       </div>
     </label>

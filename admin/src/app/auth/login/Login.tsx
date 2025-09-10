@@ -18,6 +18,7 @@ import { useForm } from "react-hook-form";
 // Icons
 import { FaGithub } from "react-icons/fa";
 import { IoMdClose } from "react-icons/io";
+import { IoEyeSharp, IoEyeOff } from "react-icons/io5";
 
 // Variables
 const loginSchema = z.object({
@@ -33,6 +34,7 @@ const loginSchema = z.object({
 export default function Login() {
   // States
   const [submitting, setSubmitting] = useState<boolean>(false);
+  const [showPass, setShowPass] = useState<boolean>(false);
 
   // Hooks
   const {
@@ -76,11 +78,23 @@ export default function Login() {
           />
           <Input
             label="Password"
-            type="password"
+            type={showPass ? "text" : "password"}
             withAsterix
             placeholder="super password"
-            rightSide={
+            hint={
               <TextLink href="/auth/forgot-password">Forgot Password</TextLink>
+            }
+            rightSide={
+              <button
+                type="button"
+                className="cursor-pointer"
+                onClick={useCallback(() => {
+                  setShowPass(!showPass);
+                }, [showPass])}>
+                <span className="text-xl text-white/70">
+                  {showPass ? <IoEyeSharp /> : <IoEyeOff />}
+                </span>
+              </button>
             }
             disabled={submitting}
             register={register("password")}

@@ -18,6 +18,7 @@ import Link from "next/link";
 // Icons
 import { FaGithub } from "react-icons/fa";
 import { IoMdClose } from "react-icons/io";
+import { IoEyeSharp, IoEyeOff } from "react-icons/io5";
 
 // Variables
 const signUpSchema = z.object({
@@ -32,6 +33,7 @@ const signUpSchema = z.object({
 export default function SignUp() {
   // States
   const [submitting, setSubmitting] = useState<boolean>(false);
+  const [showPass, setShowPass] = useState<boolean>(false);
 
   // Hooks
   const {
@@ -87,9 +89,24 @@ export default function SignUp() {
           </div>
           <Input
             label="Password"
-            type="password"
+            type={showPass ? "text" : "password"}
             withAsterix
             placeholder="super password"
+            hint={
+              <TextLink href="/auth/forgot-password">Forgot Password</TextLink>
+            }
+            rightSide={
+              <button
+                type="button"
+                className="cursor-pointer"
+                onClick={useCallback(() => {
+                  setShowPass(!showPass);
+                }, [showPass])}>
+                <span className="text-xl text-white/70">
+                  {showPass ? <IoEyeSharp /> : <IoEyeOff />}
+                </span>
+              </button>
+            }
             disabled={submitting}
             register={register("password")}
             error={errors.password?.message}
