@@ -99,7 +99,7 @@ export function TextLink(props: TextLinkProps) {
  */
 export function Input(props: InputProps) {
   return (
-    <label className="flex flex-col gap-1">
+    <label className={cn("flex flex-col gap-1", props.className)}>
       <div className="flex justify-between items-center w-full">
         {props.label && (
           <p className="text-white/70">
@@ -117,7 +117,6 @@ export function Input(props: InputProps) {
           className={cn(
             "text-white bg-[#151515] border-1 border-white/10 px-3 py-2 rounded-md outline-none focus:border-white disabled:cursor-not-allowed",
             props.disabled && "bg-[#070707] text-white/50",
-            props.className,
             props.error && "border-red-400 focus:border-red-500"
           )}
           {...props.register}
