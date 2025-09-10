@@ -87,7 +87,7 @@ export function TextLink(props: TextLinkProps) {
     <Link
       href={props.href}
       className={cn(
-        "text-white/70 underline hover:text-blue-500",
+        "text-white/70 underline w-fit hover:text-blue-500",
         props.className
       )}>
       {props.children}

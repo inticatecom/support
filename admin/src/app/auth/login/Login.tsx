@@ -112,7 +112,7 @@ export default function Login() {
             <FaGithub className="text-lg" />
             <p>Continue with GitHub</p>
           </Button>
-          <TextLink href="/auth/sign-up" className="text-center">
+          <TextLink href="/auth/sign-up" className="self-center">
             Create an Account
           </TextLink>
         </form>

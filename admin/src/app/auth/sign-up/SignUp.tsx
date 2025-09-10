@@ -92,9 +92,6 @@ export default function SignUp() {
             type={showPass ? "text" : "password"}
             withAsterix
             placeholder="super password"
-            hint={
-              <TextLink href="/auth/forgot-password">Forgot Password</TextLink>
-            }
             rightSide={
               <button
                 type="button"
@@ -123,7 +120,7 @@ export default function SignUp() {
             <FaGithub className="text-lg" />
             <p>Continue with GitHub</p>
           </Button>
-          <TextLink href="/auth/login" className="text-center">
+          <TextLink href="/auth/login" className="self-center">
             Login to Account
           </TextLink>
         </form>
