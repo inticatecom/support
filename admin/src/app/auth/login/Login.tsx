@@ -2,18 +2,20 @@
 // Resources
 import * as z from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { signIn } from "next-auth/react";
 
 // Definitions
 type LoginFormData = z.infer<typeof loginSchema>;
 
 // Components
 import { Button, Input, TextLink } from "@/components/Interaction";
-import { Card, Separator, Grid } from "@/components/View";
+import { Card, Separator, Grid, Callout } from "@/components/View";
 import Link from "next/link";
 
 // Hooks
 import { useCallback, useState } from "react";
 import { useForm } from "react-hook-form";
+import { useRouter } from "next/navigation";
 
 // Icons
 import { FaGithub } from "react-icons/fa";
@@ -34,6 +36,7 @@ const loginSchema = z.object({
 export default function Login() {
   // States
   const [submitting, setSubmitting] = useState<boolean>(false);
+  const [formError, setFormError] = useState<string | null>(null);
   const [showPass, setShowPass] = useState<boolean>(false);
 
   // Hooks
@@ -42,14 +45,36 @@ export default function Login() {
     handleSubmit,
     formState: { errors },
   } = useForm<LoginFormData>({ resolver: zodResolver(loginSchema) });
+  const router = useRouter();
 
   /**
    * Function that triggers when the login form is submitted.
    */
-  const onSubmit = useCallback((data: LoginFormData) => {
-    setSubmitting(true);
-    console.log(data);
-  }, []);
+  const onSubmit = useCallback(
+    async (data: LoginFormData) => {
+      setSubmitting(true);
+      setFormError(null);
+
+      try {
+        const result = await signIn("credentials", {
+          email: data.email,
+          password: data.password,
+          redirect: false,
+        });
+
+        if (!result?.error && result?.ok) {
+          router.push("/");
+        } else {
+          setFormError(result.code || "Internal server error.");
+        }
+      } catch {
+        setFormError("Internal server error.");
+      } finally {
+        setSubmitting(false);
+      }
+    },
+    [router]
+  );
 
   return (
     <Grid className="flex flex-col justify-center items-center">
@@ -68,6 +93,7 @@ export default function Login() {
               Login to your account to access the dashboard.
             </p>
           </div>
+          {formError && <Callout>{formError}</Callout>}
           <Input
             label="Email"
             withAsterix

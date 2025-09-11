@@ -1,5 +1,7 @@
 // Resources
 import { type Metadata } from "next";
+import { auth } from "@/auth";
+import { redirect } from "next/navigation";
 
 // Components
 import Login from "./Login";
@@ -12,6 +14,10 @@ export const metadata: Metadata = {
 /**
  * The login page server component that renders the client login page.
  */
-export default function LoginPage() {
+export default async function LoginPage() {
+  // Hooks
+  const session = await auth();
+  if (session?.user) return redirect("/");
+
   return <Login />;
 }

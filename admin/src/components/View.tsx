@@ -84,6 +84,18 @@ export function Grid({
   );
 }
 
+export function Callout({ children, className }: { children: string } & Class) {
+  return (
+    <p
+      className={cn(
+        "bg-red-500/10 border-red-500/20 border-1 rounded-lg p-2 text-white/80",
+        className
+      )}>
+      {children}
+    </p>
+  );
+}
+
 export function SideBar() {
   // Hooks
   const path = usePathname();
