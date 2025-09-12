@@ -146,7 +146,7 @@ export function SideBar() {
   ];
 
   return (
-    <div className="flex flex-col w-fit fixed left-0 top-0 bg-[#050505] h-screen border-r-[1px] border-white/10 p-4">
+    <div className="flex flex-col w-[80px] fixed left-0 top-0 bg-[#050505] h-screen border-r-[1px] border-white/10 p-4">
       <div className="flex flex-col gap-1 h-full">
         <div className="aspect-square w-full relative">
           <Image
@@ -164,15 +164,15 @@ export function SideBar() {
             href={item.href}
             draggable={false}
             className={cn(
-              "text-white text-2xl hover:bg-white/10 border-1 border-[#050505] hover:border-white/10 rounded-lg p-[6px] font-semibold flex gap-1 items-center transition-colors aspect-square w-fit",
+              "text-white text-2xl hover:bg-white/10 border-1 border-[#050505] hover:border-white/10 rounded-lg p-[6px] font-semibold flex gap-1 justify-center items-center transition-colors aspect-square w-full",
               item.href === path && "bg-white/10 border-1 border-white/10"
             )}>
-            {item.icon}
+            <span className="text-2xl">{item.icon}</span>
           </Link>
         ))}
       </div>
       <Button scheme="secondary" className="aspect-square w-full rounded-lg">
-        <MdOutlineSupportAgent className="text-xl" />
+        <MdOutlineSupportAgent className="text-2xl" />
       </Button>
     </div>
   );
