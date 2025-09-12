@@ -25,6 +25,7 @@ type InputProps = {
   disabled?: boolean;
   error?: string;
   register?: UseFormRegisterReturn;
+  ref?: React.RefObject<HTMLInputElement | null>;
 } & Class;
 type TextLinkProps = {
   children: string;
@@ -122,6 +123,7 @@ export function Input(props: InputProps) {
             type={props.type}
             disabled={props.disabled}
             className="outline-none flex-grow-1 disabled:cursor-not-allowed"
+            ref={props.ref}
             {...props.register}
           />
           {props.rightSide}

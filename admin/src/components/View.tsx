@@ -6,13 +6,17 @@ import { cn } from "@/lib/utility";
 import { usePathname } from "next/navigation";
 
 // Definitions
-import { Class } from "@/lib/definitions";
+import { Children, Class } from "@/lib/definitions";
 interface CardProps extends Class {
   children: React.ReactNode;
 }
 interface SeparatorProps extends Class {
   label?: string;
 }
+type CalloutProps = {
+  type?: "success" | "warning" | "error";
+} & Class &
+  Children;
 
 // Components
 import Link from "next/link";
@@ -84,18 +88,35 @@ export function Grid({
   );
 }
 
-export function Callout({ children, className }: { children: string } & Class) {
+/**
+ * A callout to display a type of message to a user.
+ */
+export function Callout({
+  children,
+  type = "success",
+  className,
+}: CalloutProps) {
+  const color =
+    type === "success"
+      ? "bg-green-500/10 border-green-500/20"
+      : type === "warning"
+      ? "bg-orange-500/10 border-orange-500/20"
+      : type === "error"
+      ? "bg-red-500/10 border-red-500/20"
+      : "";
+
   return (
     <p
-      className={cn(
-        "bg-red-500/10 border-red-500/20 border-1 rounded-lg p-2 text-white/80",
-        className
-      )}>
+      className={cn("border-1 rounded-lg p-2 text-white/80", color, className)}>
       {children}
     </p>
   );
 }
 
+/**
+ * The dashboard sidebar component displaying a navigational menu to navigate throughout
+ * the application.
+ */
 export function SideBar() {
   // Hooks
   const path = usePathname();

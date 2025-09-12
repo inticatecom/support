@@ -25,9 +25,11 @@ import { IoEyeSharp, IoEyeOff } from "react-icons/io5";
 // Variables
 const loginSchema = z.object({
   email: z
-    .email("Not a valid email address.")
-    .min(3, "At least 3 characters required."),
-  password: z.string().min(8, "The password requires at least 8 characters."),
+    .email("You must provide a valid email.")
+    .min(3, "Email must be of the valid format."),
+  password: z
+    .string("The password is required.")
+    .min(8, "The password requires at least 8 characters."),
 });
 
 /**
@@ -44,6 +46,7 @@ export default function Login() {
     register,
     handleSubmit,
     formState: { errors },
+    resetField,
   } = useForm<LoginFormData>({ resolver: zodResolver(loginSchema) });
   const router = useRouter();
 
@@ -66,14 +69,16 @@ export default function Login() {
           router.push("/");
         } else {
           setFormError(result.code || "Internal server error.");
+          resetField("password");
         }
       } catch {
         setFormError("Internal server error.");
+        resetField("password");
       } finally {
         setSubmitting(false);
       }
     },
-    [router]
+    [router, resetField]
   );
 
   return (
@@ -93,7 +98,7 @@ export default function Login() {
               Login to your account to access the dashboard.
             </p>
           </div>
-          {formError && <Callout>{formError}</Callout>}
+          {formError && <Callout type="error">{formError}</Callout>}
           <Input
             label="Email"
             withAsterix
@@ -113,13 +118,12 @@ export default function Login() {
             rightSide={
               <button
                 type="button"
-                className="cursor-pointer"
+                className="cursor-pointer text-xl text-white/70 disabled:text-white/50 disabled:cursor-not-allowed"
+                disabled={submitting}
                 onClick={useCallback(() => {
                   setShowPass(!showPass);
                 }, [showPass])}>
-                <span className="text-xl text-white/70">
-                  {showPass ? <IoEyeSharp /> : <IoEyeOff />}
-                </span>
+                {showPass ? <IoEyeSharp /> : <IoEyeOff />}
               </button>
             }
             disabled={submitting}
@@ -143,7 +147,7 @@ export default function Login() {
           </TextLink>
         </form>
       </Card>
-      <p className="text-white/50">
+      <p className="text-white/50 max-w-4/5 text-center">
         By continuing, you agree to our{" "}
         <TextLink href="/legal/terms" className="text-white/50">
           terms

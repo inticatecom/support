@@ -2,6 +2,8 @@
 // Resources
 import * as z from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { signUpSchema } from "@/app/api/auth/sign-up/route";
+import ky from "ky";
 
 // Types
 type SignUpData = z.infer<typeof signUpSchema>;
@@ -11,7 +13,7 @@ import { useCallback, useState } from "react";
 import { useForm } from "react-hook-form";
 
 // Components
-import { Grid, Card, Separator } from "@/components/View";
+import { Grid, Card, Separator, Callout } from "@/components/View";
 import { TextLink, Input, Button } from "@/components/Interaction";
 import Link from "next/link";
 
@@ -20,13 +22,6 @@ import { FaGithub } from "react-icons/fa";
 import { IoMdClose } from "react-icons/io";
 import { IoEyeSharp, IoEyeOff } from "react-icons/io5";
 
-// Variables
-const signUpSchema = z.object({
-  name: z.string().min(3, "Must be at least 3 characters."),
-  email: z.email("Invalid email."),
-  password: z.string().min(8, "Must be at least 8 characters."),
-});
-
 /**
  * Client component to display the sign-up page interface.
  */
@@ -34,21 +29,36 @@ export default function SignUp() {
   // States
   const [submitting, setSubmitting] = useState<boolean>(false);
   const [showPass, setShowPass] = useState<boolean>(false);
+  const [formError, setFormError] = useState<string | null>(null);
 
   // Hooks
   const {
     register,
     handleSubmit,
     formState: { errors },
+    resetField,
   } = useForm<SignUpData>({ resolver: zodResolver(signUpSchema) });
 
   /**
    * Function that triggers when the login form is submitted.
    */
-  const onSubmit = useCallback((data: SignUpData) => {
-    setSubmitting(true);
-    console.log(data);
-  }, []);
+  const onSubmit = useCallback(
+    async (data: SignUpData) => {
+      setSubmitting(true);
+      setFormError(null);
+
+      try {
+        const user = await ky.post("/api/auth/sign-up", { json: data }).json();
+        console.log(user);
+      } catch (e) {
+        resetField("password");
+        setFormError(await (e as { response: Response }).response.text());
+      } finally {
+        setSubmitting(false);
+      }
+    },
+    [resetField]
+  );
 
   return (
     <Grid className="flex flex-col justify-center items-center">
@@ -67,6 +77,7 @@ export default function SignUp() {
               Create an account with us to access the dashboard.
             </p>
           </div>
+          {formError && <Callout type="error">{formError}</Callout>}
           <div className="flex justify-center gap-3">
             <Input
               label="Full Name"
@@ -125,7 +136,7 @@ export default function SignUp() {
           </TextLink>
         </form>
       </Card>
-      <p className="text-white/50">
+      <p className="text-white/50 max-w-4/5 text-center">
         By continuing, you agree to our{" "}
         <TextLink href="/legal/terms" className="text-white/50">
           terms
