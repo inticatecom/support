@@ -13,7 +13,7 @@ import { useCallback, useState } from "react";
 import { useForm } from "react-hook-form";
 
 // Components
-import { Grid, Card, Separator, Callout } from "@/components/View";
+import { Card, Separator, Callout } from "@/components/View";
 import { TextLink, Input, Button } from "@/components/Interaction";
 import Link from "next/link";
 
@@ -21,6 +21,7 @@ import Link from "next/link";
 import { FaGithub } from "react-icons/fa";
 import { IoMdClose } from "react-icons/io";
 import { IoEyeSharp, IoEyeOff } from "react-icons/io5";
+import { useRouter } from "next/navigation";
 
 /**
  * Client component to display the sign-up page interface.
@@ -38,6 +39,7 @@ export default function SignUp() {
     formState: { errors },
     resetField,
   } = useForm<SignUpData>({ resolver: zodResolver(signUpSchema) });
+  const router = useRouter();
 
   /**
    * Function that triggers when the login form is submitted.
@@ -48,8 +50,11 @@ export default function SignUp() {
       setFormError(null);
 
       try {
-        const user = await ky.post("/api/auth/sign-up", { json: data }).json();
-        console.log(user);
+        const response = await ky
+          .post<{ success?: boolean }>("/api/auth/sign-up", { json: data })
+          .json();
+        if (!response?.success) throw new Error("Failed.");
+        router.push("/dashboard");
       } catch (e) {
         resetField("password");
         setFormError(await (e as { response: Response }).response.text());
@@ -57,11 +62,11 @@ export default function SignUp() {
         setSubmitting(false);
       }
     },
-    [resetField]
+    [resetField, router]
   );
 
   return (
-    <Grid className="flex flex-col justify-center items-center">
+    <div className="w-full h-screen flex flex-col justify-center items-center">
       <Card className="w-[90%] sm:w-[70%] md:w-[60%] lg:w-1/2 xl:w-[40%] 2xl:w-[30%]">
         <form className="flex flex-col gap-4" onSubmit={handleSubmit(onSubmit)}>
           <div className="flex flex-col gap-1">
@@ -147,6 +152,6 @@ export default function SignUp() {
         </TextLink>
         .
       </p>
-    </Grid>
+    </div>
   );
 }

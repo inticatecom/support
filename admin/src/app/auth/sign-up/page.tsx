@@ -17,7 +17,7 @@ export const metadata: Metadata = {
 export default async function SignUpPage() {
   // Hooks
   const session = await auth();
-  if (session?.user) return redirect("/");
+  if (session?.user) return redirect("/dashboard");
 
   return <SignUp />;
 }

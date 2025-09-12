@@ -17,15 +17,26 @@ type CalloutProps = {
   type?: "success" | "warning" | "error";
 } & Class &
   Children;
+type PageProps = {
+  loading?: boolean;
+} & Class &
+  Children;
 
 // Components
 import Link from "next/link";
 import Image from "next/image";
-import { Button } from "./Interaction";
+import { Button, Select } from "./Interaction";
 
 // Icons
-import { MdOutlineSpaceDashboard, MdOutlineSupportAgent } from "react-icons/md";
-import { FiSettings } from "react-icons/fi";
+import {
+  MdOutlineSupportAgent,
+  MdDashboard,
+  MdAccountBox,
+} from "react-icons/md";
+import { IoMdSettings } from "react-icons/io";
+import { BsPeopleFill } from "react-icons/bs";
+import { IoChatboxSharp } from "react-icons/io5";
+import { CgSpinner } from "react-icons/cg";
 
 /**
  * A base card component, used for holding content.
@@ -113,6 +124,41 @@ export function Callout({
   );
 }
 
+export function Page(props: PageProps) {
+  return (
+    <Card className="w-[85%] h-10/12 relative">
+      {!props.loading ? (
+        <>
+          <div className="flex flex-col items-center gap-2 p-2 absolute top-0 left-0 h-full w-[60px] rounded-l-lg border-r-1 border-white/10">
+            <div className="aspect-square w-full relative">
+              <Image
+                src="/assets/images/icon.png"
+                alt="Icon Logo"
+                layout="fill"
+                draggable={false}
+                className="aspect-square rounded-lg border-1 border-white/10"
+              />
+            </div>
+          </div>
+          <div className="absolute top-0 left-0 w-full border-b-1 border-white/10 p-2">
+            <Select
+              className="ml-[60px]"
+              list={[{ id: "test", name: "Demo Organization" }]}
+            />
+          </div>
+          <div className="absolute top-0 left-0 w-full h-full ml-[60px] mt-[60px] p-5">
+            {props.children}
+          </div>
+        </>
+      ) : (
+        <div className="flex justify-center items-center h-full">
+          <CgSpinner className="text-white text-4xl animate-spin" />
+        </div>
+      )}
+    </Card>
+  );
+}
+
 /**
  * The dashboard sidebar component displaying a navigational menu to navigate throughout
  * the application.
@@ -125,28 +171,28 @@ export function SideBar() {
   const items: { text: string; href: string; icon: React.ReactNode }[] = [
     {
       text: "Dashboard",
-      href: "/",
-      icon: <MdOutlineSpaceDashboard />,
+      href: "/dashboard",
+      icon: <MdDashboard />,
     },
     {
-      text: "Test 1",
-      href: "/test1",
-      icon: <FiSettings />,
+      text: "Messages",
+      href: "/messages",
+      icon: <IoChatboxSharp />,
     },
     {
-      text: "Test 2",
-      href: "/test2",
-      icon: <MdOutlineSpaceDashboard />,
+      text: "Team",
+      href: "/team",
+      icon: <BsPeopleFill />,
     },
     {
-      text: "Test 3",
-      href: "/test3",
-      icon: <MdOutlineSpaceDashboard />,
+      text: "Settings",
+      href: "/settings",
+      icon: <IoMdSettings />,
     },
   ];
 
   return (
-    <div className="flex flex-col w-[80px] fixed left-0 top-0 bg-[#050505] h-screen border-r-[1px] border-white/10 p-4">
+    <div className="flex flex-col w-[80px] fixed left-0 top-0 bg-[#050505] h-screen p-5">
       <div className="flex flex-col gap-1 h-full">
         <div className="aspect-square w-full relative">
           <Image
@@ -164,16 +210,21 @@ export function SideBar() {
             href={item.href}
             draggable={false}
             className={cn(
-              "text-white text-2xl hover:bg-white/10 border-1 border-[#050505] hover:border-white/10 rounded-lg p-[6px] font-semibold flex gap-1 justify-center items-center transition-colors aspect-square w-full",
-              item.href === path && "bg-white/10 border-1 border-white/10"
+              "text-white/95 text-2xl border-[#050505] hover:bg-white/10 rounded-lg p-[6px] font-semibold flex gap-1 justify-center items-center transition-colors aspect-square w-full",
+              item.href === path && "bg-white/10"
             )}>
             <span className="text-2xl">{item.icon}</span>
           </Link>
         ))}
       </div>
-      <Button scheme="secondary" className="aspect-square w-full rounded-lg">
-        <MdOutlineSupportAgent className="text-2xl" />
-      </Button>
+      <div className="flex flex-col gap-2 w-full">
+        <Button scheme="secondary" className="aspect-square w-full rounded-lg">
+          <MdAccountBox className="text-2xl" />
+        </Button>
+        <Button scheme="secondary" className="aspect-square w-full rounded-lg">
+          <MdOutlineSupportAgent className="text-2xl" />
+        </Button>
+      </div>
     </div>
   );
 }

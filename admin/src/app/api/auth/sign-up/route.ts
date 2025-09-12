@@ -1,5 +1,5 @@
 // Resources
-import { auth } from "@/auth";
+import { auth, signIn } from "@/auth";
 import { prisma } from "@/lib/utility";
 import * as z from "zod";
 import bcrypt from "bcryptjs";
@@ -40,7 +40,7 @@ export async function POST(req: Request) {
       return new Response("Email already taken.", { status: 409 });
 
     const hashedPass = await bcrypt.hash(data.password, 10);
-    const newUser = await prisma.user.create({
+    await prisma.user.create({
       data: {
         name: data.name,
         email: data.email,
@@ -48,10 +48,14 @@ export async function POST(req: Request) {
       },
     });
 
+    await signIn("credentials", {
+      email: data.email,
+      password: data.password,
+      redirect: false,
+    });
+
     return Response.json({
-      id: newUser.id,
-      name: newUser.name,
-      email: newUser.email,
+      success: true,
     });
   } catch (e) {
     console.error(e);

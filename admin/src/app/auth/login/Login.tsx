@@ -9,7 +9,7 @@ type LoginFormData = z.infer<typeof loginSchema>;
 
 // Components
 import { Button, Input, TextLink } from "@/components/Interaction";
-import { Card, Separator, Grid, Callout } from "@/components/View";
+import { Card, Separator, Callout } from "@/components/View";
 import Link from "next/link";
 
 // Hooks
@@ -66,7 +66,7 @@ export default function Login() {
         });
 
         if (!result?.error && result?.ok) {
-          router.push("/");
+          router.push("/dashboard");
         } else {
           setFormError(result.code || "Internal server error.");
           resetField("password");
@@ -82,7 +82,7 @@ export default function Login() {
   );
 
   return (
-    <Grid className="flex flex-col justify-center items-center">
+    <div className="w-full h-screen flex flex-col justify-center items-center">
       <Card className="w-[90%] sm:w-[70%] md:w-[60%] lg:w-1/2 xl:w-[40%] 2xl:w-[30%]">
         <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
           <div className="flex flex-col gap-1">
@@ -158,6 +158,6 @@ export default function Login() {
         </TextLink>
         .
       </p>
-    </Grid>
+    </div>
   );
 }

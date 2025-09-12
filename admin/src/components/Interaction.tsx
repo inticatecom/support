@@ -1,3 +1,4 @@
+"use client";
 // Resources
 import { cn } from "@/lib/utility";
 
@@ -31,9 +32,14 @@ type TextLinkProps = {
   children: string;
   href: string;
 } & Class;
+interface SelectProps extends Class {
+  name?: string;
+  list: { id: string; name: string }[];
+}
 
 // Icons
 import { CgSpinner } from "react-icons/cg";
+import { MdOutlineKeyboardArrowDown } from "react-icons/md";
 
 /**
  * A base button component.
@@ -130,6 +136,25 @@ export function Input(props: InputProps) {
         </div>
         {props.error && <p className="text-red-400 text-sm">{props.error}</p>}
       </div>
+    </label>
+  );
+}
+
+export function Select({ list, name, className }: SelectProps) {
+  return (
+    <label
+      className={cn(
+        "flex justify-center items-center gap-1 w-fit border-1 border-white/10 text-white px-3 py-2 rounded-md cursor-pointer focus-within:border-white",
+        className
+      )}>
+      <select name={name} className="appearance-none cursor-pointer">
+        {list.map((item, index) => (
+          <option key={index} value={item.id}>
+            {item.name}
+          </option>
+        ))}
+      </select>
+      <MdOutlineKeyboardArrowDown className="text-white/30 text-xl" />
     </label>
   );
 }

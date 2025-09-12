@@ -2,6 +2,10 @@
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
+// Components
+import { SessionProvider } from "next-auth/react";
+import { Grid } from "@/components/View";
+
 // Types
 import type { Metadata } from "next";
 
@@ -36,7 +40,9 @@ export default function RootLayout({
     <html lang="en">
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-        {children}
+        <SessionProvider>
+          <Grid className="flex justify-center items-center">{children}</Grid>
+        </SessionProvider>
       </body>
     </html>
   );
