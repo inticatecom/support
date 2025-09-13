@@ -39,7 +39,11 @@ interface SelectProps extends Class {
 
 // Icons
 import { CgSpinner } from "react-icons/cg";
-import { MdOutlineKeyboardArrowDown } from "react-icons/md";
+import {
+  MdOutlineKeyboardArrowDown,
+  MdOutlineKeyboardArrowUp,
+} from "react-icons/md";
+import { useCallback, useRef, useState } from "react";
 
 /**
  * A base button component.
@@ -141,20 +145,67 @@ export function Input(props: InputProps) {
 }
 
 export function Select({ list, name, className }: SelectProps) {
+  // States
+  const [visible, setVisible] = useState<boolean>(false);
+  const [value, setValue] = useState<string | undefined>(list[0].id);
+
+  // References
+  const input = useRef<HTMLSelectElement>(null);
+
+  /**
+   * Sets the current value of the input.
+   */
+  const set = useCallback((newValue: string) => {
+    setValue(newValue);
+    setVisible(false);
+  }, []);
+
   return (
-    <label
-      className={cn(
-        "flex justify-center items-center gap-1 w-fit border-1 border-white/10 text-white px-3 py-2 rounded-md cursor-pointer focus-within:border-white",
-        className
-      )}>
-      <select name={name} className="appearance-none cursor-pointer">
-        {list.map((item, index) => (
-          <option key={index} value={item.id}>
-            {item.name}
-          </option>
-        ))}
-      </select>
-      <MdOutlineKeyboardArrowDown className="text-white/30 text-xl" />
-    </label>
+    <div className="w-fit flex flex-col gap-1 relative">
+      <label
+        className={cn(
+          "flex justify-center items-center gap-1 w-fit border-1 border-white/10 text-white px-3 py-2 rounded-md cursor-pointer focus-within:border-white",
+          className
+        )}>
+        <select
+          name={name}
+          ref={input}
+          onFocus={useCallback(() => setVisible(true), [])}
+          onBlur={useCallback(() => setVisible(false), [])}
+          className="appearance-none cursor-pointer pointer-events-none"
+          onChange={(e) => set(e.target.value)}
+          value={value}>
+          {list.map((item, index) => (
+            <option key={index} value={item.id}>
+              {item.name}
+            </option>
+          ))}
+        </select>
+        <button
+          onClick={useCallback(() => input.current?.focus(), [])}
+          className="text-white/30 text-xl cursor-pointer">
+          {!visible ? (
+            <MdOutlineKeyboardArrowDown />
+          ) : (
+            <MdOutlineKeyboardArrowUp />
+          )}
+        </button>
+      </label>
+      {visible && (
+        <div className="absolute top-[110%] left-0 flex flex-col gap-1 w-full border-1 border-white/10 bg-[#070707] text-white rounded-md p-1 z-1">
+          {list.map((item, index) => (
+            <button
+              key={index}
+              onMouseDown={() => set(item.id)}
+              className={cn(
+                "w-full cursor-pointer hover:bg-white/10 rounded-sm px-3 py-2 text-start",
+                item.id === value && "bg-white/10"
+              )}>
+              {item.name}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }

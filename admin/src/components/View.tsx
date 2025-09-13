@@ -35,7 +35,7 @@ import {
 } from "react-icons/md";
 import { IoMdSettings } from "react-icons/io";
 import { BsPeopleFill } from "react-icons/bs";
-import { IoChatboxSharp } from "react-icons/io5";
+import { IoChatboxSharp, IoLogOutSharp } from "react-icons/io5";
 import { CgSpinner } from "react-icons/cg";
 
 /**
@@ -126,10 +126,10 @@ export function Callout({
 
 export function Page(props: PageProps) {
   return (
-    <Card className="w-[85%] h-10/12 relative">
+    <Card className="w-[85%] h-10/12 relative p-0">
       {!props.loading ? (
-        <>
-          <div className="flex flex-col items-center gap-2 p-2 absolute top-0 left-0 h-full w-[60px] rounded-l-lg border-r-1 border-white/10">
+        <div className="grid grid-cols-[60px_1fr] grid-rows-[60px_1fr] h-full">
+          <div className="flex flex-col items-center gap-2 p-2 border-r-1 border-b-1 border-white/10">
             <div className="aspect-square w-full relative">
               <Image
                 src="/assets/images/icon.png"
@@ -140,16 +140,22 @@ export function Page(props: PageProps) {
               />
             </div>
           </div>
-          <div className="absolute top-0 left-0 w-full border-b-1 border-white/10 p-2">
+
+          <div className="border-b-1 border-white/10 p-2 flex items-center">
             <Select
-              className="ml-[60px]"
-              list={[{ id: "test", name: "Demo Organization" }]}
+              list={[
+                { id: "test", name: "Demo Organization" },
+                { id: "test2", name: "Another Organization" },
+              ]}
             />
           </div>
-          <div className="absolute top-0 left-0 w-full h-full ml-[60px] mt-[60px] p-5">
-            {props.children}
+
+          <div className="flex flex-col items-center border-r-1 border-white/10">
+            {/* <SideLink icon={<IoLogOutSharp />} /> */}
           </div>
-        </>
+
+          <div className="px-5 py-4 overflow-auto">{props.children}</div>
+        </div>
       ) : (
         <div className="flex justify-center items-center h-full">
           <CgSpinner className="text-white text-4xl animate-spin" />
@@ -157,6 +163,14 @@ export function Page(props: PageProps) {
       )}
     </Card>
   );
+
+  function SideLink(props: { icon: React.ReactNode } & Class) {
+    return (
+      <Link href="/" className={cn("text-4xl text-red-500", props.className)}>
+        {props.icon}
+      </Link>
+    );
+  }
 }
 
 /**
