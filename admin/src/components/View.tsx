@@ -1,9 +1,7 @@
 "use client";
 // Resources
 import { cn } from "@/lib/utility";
-
-// Hooks
-import { usePathname } from "next/navigation";
+import { signOut } from "next-auth/react";
 
 // Definitions
 import { Children, Class } from "@/lib/definitions";
@@ -21,22 +19,25 @@ type PageProps = {
   loading?: boolean;
 } & Class &
   Children;
+type SideBarProps = {
+  href: string;
+} & Class &
+  Children;
 
 // Components
 import Link from "next/link";
 import Image from "next/image";
-import { Button, Select } from "./Interaction";
+import { Select } from "./Interaction";
 
 // Icons
 import {
   MdOutlineSupportAgent,
   MdDashboard,
   MdAccountBox,
+  MdLogout,
 } from "react-icons/md";
-import { IoMdSettings } from "react-icons/io";
-import { BsPeopleFill } from "react-icons/bs";
-import { IoChatboxSharp, IoLogOutSharp } from "react-icons/io5";
 import { CgSpinner } from "react-icons/cg";
+import { FaInbox } from "react-icons/fa6";
 
 /**
  * A base card component, used for holding content.
@@ -124,7 +125,17 @@ export function Callout({
   );
 }
 
+/**
+ * The container for a page displayed on the dashboard.
+ */
 export function Page(props: PageProps) {
+  const items: { path: string; icon: React.ReactNode; className?: string }[] = [
+    {
+      path: "inbox",
+      icon: <FaInbox />,
+    },
+  ];
+
   return (
     <Card className="w-[85%] h-10/12 relative p-0">
       {!props.loading ? (
@@ -150,8 +161,22 @@ export function Page(props: PageProps) {
             />
           </div>
 
-          <div className="flex flex-col items-center border-r-1 border-white/10">
+          <div className="flex flex-col items-center py-3 gap-2 border-r-1 border-white/10">
             {/* <SideLink icon={<IoLogOutSharp />} /> */}
+            {items.map((item, index) => (
+              <SideBarLink
+                key={index}
+                href={item.path}
+                className={item.className}>
+                {item.icon}
+              </SideBarLink>
+            ))}
+
+            <button
+              onClick={async () => await signOut()}
+              className="text-red-400 bg-red-400/10 p-2 text-xl rounded-lg mt-auto cursor-pointer">
+              <MdLogout />
+            </button>
           </div>
 
           <div className="px-5 py-4 overflow-auto">{props.children}</div>
@@ -164,81 +189,19 @@ export function Page(props: PageProps) {
     </Card>
   );
 
-  function SideLink(props: { icon: React.ReactNode } & Class) {
+  /**
+   * An item displayed in the side bar of the page.
+   */
+  function SideBarLink(props: SideBarProps) {
     return (
-      <Link href="/" className={cn("text-4xl text-red-500", props.className)}>
-        {props.icon}
+      <Link
+        href={props.href}
+        className={cn(
+          "text-white bg-white/10 p-2 text-xl rounded-lg",
+          props.className
+        )}>
+        {props.children}
       </Link>
     );
   }
-}
-
-/**
- * The dashboard sidebar component displaying a navigational menu to navigate throughout
- * the application.
- */
-export function SideBar() {
-  // Hooks
-  const path = usePathname();
-
-  // Variables
-  const items: { text: string; href: string; icon: React.ReactNode }[] = [
-    {
-      text: "Dashboard",
-      href: "/dashboard",
-      icon: <MdDashboard />,
-    },
-    {
-      text: "Messages",
-      href: "/messages",
-      icon: <IoChatboxSharp />,
-    },
-    {
-      text: "Team",
-      href: "/team",
-      icon: <BsPeopleFill />,
-    },
-    {
-      text: "Settings",
-      href: "/settings",
-      icon: <IoMdSettings />,
-    },
-  ];
-
-  return (
-    <div className="flex flex-col w-[80px] fixed left-0 top-0 bg-[#050505] h-screen p-5">
-      <div className="flex flex-col gap-1 h-full">
-        <div className="aspect-square w-full relative">
-          <Image
-            src="/assets/images/icon.png"
-            alt="Icon Logo"
-            layout="fill"
-            draggable={false}
-            className="aspect-square rounded-lg border-1 border-white/10"
-          />
-        </div>
-        <Separator className="my-1" />
-        {items.map((item, index) => (
-          <Link
-            key={index}
-            href={item.href}
-            draggable={false}
-            className={cn(
-              "text-white/95 text-2xl border-[#050505] hover:bg-white/10 rounded-lg p-[6px] font-semibold flex gap-1 justify-center items-center transition-colors aspect-square w-full",
-              item.href === path && "bg-white/10"
-            )}>
-            <span className="text-2xl">{item.icon}</span>
-          </Link>
-        ))}
-      </div>
-      <div className="flex flex-col gap-2 w-full">
-        <Button scheme="secondary" className="aspect-square w-full rounded-lg">
-          <MdAccountBox className="text-2xl" />
-        </Button>
-        <Button scheme="secondary" className="aspect-square w-full rounded-lg">
-          <MdOutlineSupportAgent className="text-2xl" />
-        </Button>
-      </div>
-    </div>
-  );
 }
