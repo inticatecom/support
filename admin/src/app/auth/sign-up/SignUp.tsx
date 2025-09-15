@@ -70,14 +70,9 @@ export default function SignUp() {
       <Card className="w-[90%] sm:w-[70%] md:w-[60%] lg:w-1/2 xl:w-[40%] 2xl:w-[30%]">
         <form className="flex flex-col gap-4" onSubmit={handleSubmit(onSubmit)}>
           <div className="flex flex-col gap-1">
-            <div className="flex justify-between items-center w-full">
-              <h1 className="font-semibold text-3xl text-white">
-                Create Account
-              </h1>
-              <Link href="/" draggable={false}>
-                <IoMdClose className="text-white text-3xl p-1 rounded-lg hover:bg-white/10 transition-colors" />
-              </Link>
-            </div>
+            <h1 className="font-semibold text-3xl text-white">
+              Create Account
+            </h1>
             <p className="text-white/70">
               Create an account with us to access the dashboard.
             </p>

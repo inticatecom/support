@@ -30,12 +30,7 @@ import Image from "next/image";
 import { Select } from "./Interaction";
 
 // Icons
-import {
-  MdOutlineSupportAgent,
-  MdDashboard,
-  MdAccountBox,
-  MdLogout,
-} from "react-icons/md";
+import { MdLogout } from "react-icons/md";
 import { CgSpinner } from "react-icons/cg";
 import { FaInbox } from "react-icons/fa6";
 
@@ -131,7 +126,7 @@ export function Callout({
 export function Page(props: PageProps) {
   const items: { path: string; icon: React.ReactNode; className?: string }[] = [
     {
-      path: "inbox",
+      path: "/dashboard/inbox",
       icon: <FaInbox />,
     },
   ];
@@ -141,15 +136,18 @@ export function Page(props: PageProps) {
       {!props.loading ? (
         <div className="grid grid-cols-[60px_1fr] grid-rows-[60px_1fr] h-full">
           <div className="flex flex-col items-center gap-2 p-2 border-r-1 border-b-1 border-white/10">
-            <div className="aspect-square w-full relative">
+            <Link
+              href="/dashboard"
+              draggable={false}
+              className="aspect-square w-full relative">
               <Image
                 src="/assets/images/icon.png"
                 alt="Icon Logo"
                 layout="fill"
                 draggable={false}
-                className="aspect-square rounded-lg border-1 border-white/10"
+                className="aspect-square rounded-lg border-1 border-white/10 hover:border-white/20 transition-colors"
               />
-            </div>
+            </Link>
           </div>
 
           <div className="border-b-1 border-white/10 p-2 flex items-center">
@@ -174,7 +172,7 @@ export function Page(props: PageProps) {
 
             <button
               onClick={async () => await signOut()}
-              className="text-red-400 bg-red-400/10 p-2 text-xl rounded-lg mt-auto cursor-pointer">
+              className="text-red-400 bg-red-400/10 hover:bg-red-400/20 p-2 text-xl rounded-lg mt-auto cursor-pointer transition-colors">
               <MdLogout />
             </button>
           </div>
@@ -197,7 +195,7 @@ export function Page(props: PageProps) {
       <Link
         href={props.href}
         className={cn(
-          "text-white bg-white/10 p-2 text-xl rounded-lg",
+          "text-white bg-white/10 hover:bg-white/20 p-2 text-xl rounded-lg transition-colors",
           props.className
         )}>
         {props.children}

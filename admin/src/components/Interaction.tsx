@@ -60,7 +60,7 @@ export function Button({
   return (
     <button
       className={cn(
-        "flex justify-center items-center bg-gray-100 px-2 py-[6px] rounded-md font-semibold hover:bg-white cursor-pointer disabled:cursor-not-allowed transition-colors",
+        "flex text-black justify-center items-center bg-gray-100 px-2 py-[6px] rounded-md font-semibold hover:bg-white cursor-pointer disabled:cursor-not-allowed transition-colors",
         scheme === "secondary" &&
           "bg-[#151515] border-1 border-white/10 text-white hover:bg-[#181818]",
         loading &&
@@ -198,7 +198,7 @@ export function Select({ list, name, className }: SelectProps) {
               key={index}
               onMouseDown={() => set(item.id)}
               className={cn(
-                "w-full cursor-pointer hover:bg-white/10 rounded-sm px-3 py-2 text-start",
+                "w-full cursor-pointer hover:bg-white/10 rounded-sm px-2 py-[7px] text-start",
                 item.id === value && "bg-white/10"
               )}>
               {item.name}
@@ -206,6 +206,17 @@ export function Select({ list, name, className }: SelectProps) {
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+export function Tooltip({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="relative contents">
+      {children}
+      <p className="absolute pointer-events-none bg-[#070707] border-1 border-white/10 rounded-lg text-white px-2 py-1 text-sm top-0">
+        test
+      </p>
     </div>
   );
 }
