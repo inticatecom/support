@@ -34,7 +34,7 @@ export function Button({
   return (
     <button
       className={cn(
-        "flex text-black justify-center items-center bg-gray-100 px-2 py-[6px] rounded-md font-semibold hover:bg-white cursor-pointer disabled:cursor-not-allowed transition-colors",
+        "flex text-black justify-center items-center bg-gray-200 px-2 py-[6px] rounded-md font-semibold hover:bg-gray-300 cursor-pointer disabled:cursor-not-allowed transition-colors",
         scheme === "secondary" &&
           "bg-[#151515] border-1 border-white/10 text-white hover:bg-[#181818]",
         loading &&
@@ -145,8 +145,8 @@ export function TextArea(props: Types.TextAreaProps) {
             disabled={props.disabled}
             className="outline-none flex-grow-1 resize-none disabled:cursor-not-allowed"
             ref={props.ref}
-            minRows={1}
-            maxRows={3}
+            minRows={props.minRows || 1}
+            maxRows={props.maxRows || 3}
             {...props.register}
           />
         </div>
@@ -159,10 +159,12 @@ export function TextArea(props: Types.TextAreaProps) {
 /**
  * A dropdown menu users can select options from.
  */
-export function Select({ list, name, className }: Types.SelectProps) {
+export function Select(props: Types.SelectProps) {
   // States
   const [visible, setVisible] = useState<boolean>(false);
-  const [value, setValue] = useState<string | undefined>(list[0].id);
+  const [value, setValue] = useState<string | undefined>(
+    props.defaultId || props.list[0].id
+  );
 
   // References
   const input = useRef<HTMLSelectElement>(null);
@@ -176,39 +178,47 @@ export function Select({ list, name, className }: Types.SelectProps) {
   }, []);
 
   return (
-    <div className="w-fit flex flex-col gap-1 relative">
-      <label
-        className={cn(
-          "flex justify-center items-center gap-1 w-fit border-1 border-white/10 text-white px-3 py-2 rounded-md cursor-pointer focus-within:border-white",
-          className
-        )}>
-        <select
-          name={name}
-          ref={input}
-          onFocus={useCallback(() => setVisible(true), [])}
-          onBlur={useCallback(() => setVisible(false), [])}
-          className="appearance-none cursor-pointer pointer-events-none"
-          onChange={(e) => set(e.target.value)}
-          value={value}>
-          {list.map((item, index) => (
-            <option key={index} value={item.id}>
-              {item.name}
-            </option>
-          ))}
-        </select>
-        <button
-          onClick={useCallback(() => input.current?.focus(), [])}
-          className="text-white/30 text-xl cursor-pointer">
-          {!visible ? (
-            <MdOutlineKeyboardArrowDown />
-          ) : (
-            <MdOutlineKeyboardArrowUp />
-          )}
-        </button>
+    <div
+      className={cn(
+        "w-fit h-fit flex flex-col gap-1 relative",
+        props.className
+      )}>
+      <label className="flex flex-col justify-center gap-1 w-full text-white cursor-pointer">
+        {props.label && (
+          <p className="text-white/70">
+            {props.label}
+            {props.withAsterix && <span className="text-red-400"> *</span>}
+          </p>
+        )}
+        <div className="flex justify-between gap-1 border-1 bg-[#151515] border-white/10 px-3 py-2 rounded-md focus-within:border-white">
+          <select
+            name={props.name}
+            ref={input}
+            onFocus={useCallback(() => setVisible(true), [])}
+            onBlur={useCallback(() => setVisible(false), [])}
+            className="appearance-none cursor-pointer pointer-events-none"
+            onChange={(e) => set(e.target.value)}
+            value={value}>
+            {props.list.map((item, index) => (
+              <option key={index} value={item.id}>
+                {item.name}
+              </option>
+            ))}
+          </select>
+          <button
+            onClick={useCallback(() => input.current?.focus(), [])}
+            className="text-white/30 text-xl cursor-pointer">
+            {!visible ? (
+              <MdOutlineKeyboardArrowDown />
+            ) : (
+              <MdOutlineKeyboardArrowUp />
+            )}
+          </button>
+        </div>
       </label>
       {visible && (
-        <div className="absolute top-[110%] left-0 flex flex-col gap-1 w-full border-1 border-white/10 bg-[#070707] text-white rounded-md p-1 z-1">
-          {list.map((item, index) => (
+        <div className="absolute top-[110%] left-0 flex flex-col gap-1 w-full border-1 border-white/10 bg-[#151515] text-white rounded-md p-1 z-1">
+          {props.list.map((item, index) => (
             <button
               key={index}
               onMouseDown={() => set(item.id)}

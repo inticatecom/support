@@ -61,17 +61,21 @@ export type TextLinkProps = {
 } & Class;
 
 /** Properties applied to the select component. */
-export interface SelectProps extends Class {
+export type SelectProps = {
   /** The name of the select. */
   name?: string;
+  defaultId?: string;
   /** The options to be displayed in the select menu. */
   list: { id: string; name: string }[];
-}
+} & Class &
+  Pick<InputProps, "label" | "withAsterix">;
 
 /** Properties applied to the text area component. */
 export type TextAreaProps = Omit<InputProps, "ref" | "type" | "rightSide"> & {
   /** The reference to store the text area in. */
   ref?: React.RefObject<HTMLTextAreaElement | null>;
+  minRows?: number;
+  maxRows?: number;
 };
 
 /** Properties applied to the card component. */

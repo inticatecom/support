@@ -12,7 +12,7 @@ import Image from "next/image";
 import { Select } from "./Interaction";
 
 // Icons
-import { MdLogout } from "react-icons/md";
+import { MdCreateNewFolder, MdLogout } from "react-icons/md";
 import { CgSpinner } from "react-icons/cg";
 import { FaInbox } from "react-icons/fa6";
 
@@ -155,11 +155,18 @@ export function Page(props: Types.PageProps) {
               </PageLink>
             ))}
 
-            <button
-              onClick={async () => await signOut()}
-              className="text-red-400 bg-red-400/10 hover:bg-red-400/20 p-2 text-xl rounded-lg mt-auto cursor-pointer transition-colors">
-              <MdLogout />
-            </button>
+            <div className="mt-auto flex flex-col gap-2">
+              <PageLink
+                href="/create-organization"
+                className="mt-auto bg-blue-300/10 hover:bg-blue-300/20 text-blue-300">
+                <MdCreateNewFolder />
+              </PageLink>
+              <button
+                onClick={async () => await signOut()}
+                className="text-red-400 bg-red-400/10 hover:bg-red-400/20 p-2 text-xl rounded-lg cursor-pointer transition-colors">
+                <MdLogout />
+              </button>
+            </div>
           </div>
 
           <div className="px-5 py-4 overflow-auto">{props.children}</div>

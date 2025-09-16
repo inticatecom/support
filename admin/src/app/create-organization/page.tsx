@@ -1,5 +1,11 @@
 // Components
-import { Button, Input, TextArea, TextLink } from "@/components/Interaction";
+import {
+  Button,
+  Input,
+  Select,
+  TextArea,
+  TextLink,
+} from "@/components/Interaction";
 import { Card } from "@/components/View";
 
 export default function CreateOrganization() {
@@ -17,14 +23,14 @@ export default function CreateOrganization() {
             label="Organization Name"
             withAsterix
             placeholder="Acme Inc."
-            className="flex-grow-1"
+            className="w-1/2"
           />
           <Input
-            label="Access Key"
+            label="License Key"
             withAsterix
             hint={<TextLink href="/purchase">Purchase Key</TextLink>}
-            placeholder="1234-5678"
-            className="flex-grow-1"
+            placeholder="ABCD-1234-5678"
+            className="w-1/2"
           />
         </div>
         <TextArea
@@ -32,11 +38,28 @@ export default function CreateOrganization() {
           withAsterix
           placeholder="The main live chat dashboard for Acme Inc."
         />
+        <TextArea
+          label="What is your use-case for this organization?"
+          placeholder="I plan to use the live chat to ..."
+          minRows={2}
+        />
+        <div className="w-full flex gap-2">
+          <Select
+            label="How large is your team?"
+            list={[{ id: "10", name: "0-10 Employees" }]}
+            className="w-1/2"
+          />
+          <Select
+            label="What is your user-base?"
+            list={[{ id: "10", name: "0-10 Users" }]}
+            className="w-1/2"
+          />
+        </div>
         <div className="flex gap-2 w-full">
-          <Button type="button" scheme="secondary" className="flex-grow-1">
+          <Button type="button" scheme="secondary" className="w-1/2">
             Get Access
           </Button>
-          <Button className="flex-grow-1">Create Organization</Button>
+          <Button className="w-1/2">Create Organization</Button>
         </div>
       </form>
     </Card>
