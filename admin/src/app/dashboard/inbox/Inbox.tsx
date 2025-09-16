@@ -5,7 +5,7 @@ import { cn } from "@/lib/utility";
 
 // Components
 import { Page } from "@/components/View";
-import { Input } from "@/components/Interaction";
+import { Input, TextArea } from "@/components/Interaction";
 
 // Definitions
 interface MessageBoxProps {
@@ -37,14 +37,20 @@ export default function Inbox() {
             ))}
           </div>
         </div>
-        <div className="flex flex-col gap-2 flex-grow-1 max-h-full overflow-y-auto">
-          {Array.from({ length: 30 }).map((_, index) => (
-            <Bubble
-              key={index}
-              mode={index % 2 ? "secondary" : "primary"}
-              message={`This is message ${index}! This is just a demo message to demonstrate the scaling of multiple messages.`}
-            />
-          ))}
+        <div className="h-full w-full flex flex-col">
+          <div className="flex flex-col gap-2 flex-grow-1 max-h-full overflow-y-auto">
+            {Array.from({ length: 30 }).map((_, index) => (
+              <Bubble
+                key={index}
+                mode={index % 2 ? "secondary" : "primary"}
+                message={`This is message ${index}! This is just a demo message to demonstrate the scaling of multiple messages.`}
+              />
+            ))}
+          </div>
+          <TextArea
+            className="flex-grow-1 mt-1 text-lg"
+            placeholder="This is a message ..."
+          />
         </div>
       </div>
     </Page>
