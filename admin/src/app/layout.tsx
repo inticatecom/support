@@ -7,7 +7,7 @@ import { SessionProvider } from "next-auth/react";
 import { Grid } from "@/components/View";
 
 // Types
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 
 // Variables
 const geistSans = Geist({
@@ -25,10 +25,20 @@ const geistMono = Geist_Mono({
 
 // Metadata
 export const metadata: Metadata = {
+  generator: "Inticate",
+  applicationName: "Inticate",
   title: {
     template: "%s | Agent Dashboard",
     default: "Agent Dashboard",
   },
+  description:
+    "Professional live chat application. Level up your customer service platform and provide your users the customer service they deserve.",
+  keywords: ["live chat", "crm", "customer service", "dashboard"],
+};
+
+// Viewport
+export const viewport: Viewport = {
+  themeColor: "#121212",
 };
 
 export default function RootLayout({

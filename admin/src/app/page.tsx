@@ -2,12 +2,12 @@
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 
+/**
+ * Main route, mainly used for redirecting user based on their authentication status.
+ */
 export default async function Home() {
   // Hooks
   const session = await auth();
-  if (!session?.user) {
-    return redirect("/auth/login");
-  } else {
-    return redirect("/dashboard");
-  }
+
+  return session?.user ? redirect("/dashboard") : redirect("/auth/login");
 }

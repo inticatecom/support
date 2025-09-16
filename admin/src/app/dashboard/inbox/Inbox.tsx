@@ -19,6 +19,9 @@ interface BubbleProps {
   mode?: "primary" | "secondary";
 }
 
+/**
+ * Client-side page for viewing messages from users for the currently selected organization.
+ */
 export default function Inbox() {
   return (
     <Page title="Inbox">
