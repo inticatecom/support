@@ -1,8 +1,23 @@
 // Resources
-import NextAuth from "next-auth";
-import authConfig from "./auth.config";
+import NextAuth, { CredentialsSignin } from "next-auth";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { prisma } from "./lib/utility";
+import Credentials from "next-auth/providers/credentials";
+import bcrypt from "bcryptjs";
+
+// Error Codes
+class MissingParams extends CredentialsSignin {
+  code = "missing_params";
+}
+class AccountNotFound extends CredentialsSignin {
+  code = "account_not_found";
+}
+class AccountUsesOAuth extends CredentialsSignin {
+  code = "account_uses_oauth";
+}
+class InvalidPassword extends CredentialsSignin {
+  code = "invalid_password";
+}
 
 /**
  * Resources to interact with the authentication library.
@@ -10,5 +25,37 @@ import { prisma } from "./lib/utility";
 export const { handlers, signIn, signOut, auth } = NextAuth({
   adapter: PrismaAdapter(prisma),
   session: { strategy: "jwt" },
-  ...authConfig,
+  pages: {
+    signIn: "/auth/login",
+    signOut: "/",
+  },
+  providers: [
+    Credentials({
+      credentials: {
+        email: { label: "Email", type: "email" },
+        password: { label: "Password", type: "password" },
+      },
+      async authorize(credentials) {
+        if (!credentials || !credentials.email || !credentials.password)
+          throw new MissingParams();
+
+        const user = await prisma.user.findUnique({
+          where: {
+            email: String(credentials.email),
+          },
+        });
+
+        if (!user) throw new AccountNotFound();
+
+        if (!user.password) throw new AccountUsesOAuth();
+        const validPass = await bcrypt.compare(
+          String(credentials.password),
+          user.password
+        );
+        if (!validPass) throw new InvalidPassword();
+
+        return user;
+      },
+    }),
+  ],
 });

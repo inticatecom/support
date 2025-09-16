@@ -1,5 +1,7 @@
-// Resources
-import NextAuth from "next-auth";
-import authConfig from "./auth.config";
+export { auth as middleware } from "./auth";
 
-export const { auth: middleware } = NextAuth(authConfig); // Export
+export const config = {
+  matcher: ["/((?!api|_next/static|_next/image|favicon.ico).*)"],
+};
+
+export const runtime = "experimental-edge";
