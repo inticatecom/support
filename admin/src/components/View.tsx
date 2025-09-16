@@ -4,25 +4,7 @@ import { cn } from "@/lib/utility";
 import { signOut } from "next-auth/react";
 
 // Definitions
-import { Children, Class } from "@/lib/definitions";
-interface CardProps extends Class {
-  children: React.ReactNode;
-}
-interface SeparatorProps extends Class {
-  label?: string;
-}
-type CalloutProps = {
-  type?: "success" | "warning" | "error";
-} & Class &
-  Children;
-type PageProps = {
-  loading?: boolean;
-} & Class &
-  Children;
-type SideBarProps = {
-  href: string;
-} & Class &
-  Children;
+import * as Types from "@/lib/definitions";
 
 // Components
 import Link from "next/link";
@@ -37,7 +19,7 @@ import { FaInbox } from "react-icons/fa6";
 /**
  * A base card component, used for holding content.
  */
-export function Card({ children, className }: CardProps) {
+export function Card({ children, className }: Types.CardProps) {
   return (
     <div
       className={cn(
@@ -52,8 +34,8 @@ export function Card({ children, className }: CardProps) {
 /**
  * Create a separator to separate content from another section.
  */
-export function Separator({ label, className }: SeparatorProps) {
-  function Spacer({ className }: Class) {
+export function Separator({ label, className }: Types.SeparatorProps) {
+  function Spacer({ className }: Types.Class) {
     return <span className={cn("bg-white/10 w-full h-[1px]", className)} />;
   }
 
@@ -102,7 +84,7 @@ export function Callout({
   children,
   type = "success",
   className,
-}: CalloutProps) {
+}: Types.CalloutProps) {
   const color =
     type === "success"
       ? "bg-green-500/10 border-green-500/20"
@@ -123,7 +105,7 @@ export function Callout({
 /**
  * The container for a page displayed on the dashboard.
  */
-export function Page(props: PageProps) {
+export function Page(props: Types.PageProps) {
   const items: { path: string; icon: React.ReactNode; className?: string }[] = [
     {
       path: "/dashboard/inbox",
@@ -150,24 +132,27 @@ export function Page(props: PageProps) {
             </Link>
           </div>
 
-          <div className="border-b-1 border-white/10 p-2 flex items-center">
+          <div className="border-b-1 border-white/10 p-2 flex justify-between items-center">
             <Select
               list={[
                 { id: "test", name: "Demo Organization" },
                 { id: "test2", name: "Another Organization" },
               ]}
             />
+            {props.title && (
+              <p className="absolute left-1/2 transform -translate-x-1/2 text-white text-lg">
+                {props.title}
+              </p>
+            )}
+            <div className="w-[200px]" />
           </div>
 
           <div className="flex flex-col items-center py-3 gap-2 border-r-1 border-white/10">
             {/* <SideLink icon={<IoLogOutSharp />} /> */}
             {items.map((item, index) => (
-              <SideBarLink
-                key={index}
-                href={item.path}
-                className={item.className}>
+              <PageLink key={index} href={item.path} className={item.className}>
                 {item.icon}
-              </SideBarLink>
+              </PageLink>
             ))}
 
             <button
@@ -190,7 +175,7 @@ export function Page(props: PageProps) {
   /**
    * An item displayed in the side bar of the page.
    */
-  function SideBarLink(props: SideBarProps) {
+  function PageLink(props: Types.PageLinkProps) {
     return (
       <Link
         href={props.href}

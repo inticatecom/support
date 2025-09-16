@@ -13,7 +13,7 @@ export default function Dashboard() {
   const session = useSession();
 
   return (
-    <Page loading={session.status === "loading"}>
+    <Page title="Dashboard" loading={session.status === "loading"}>
       <h1 className="text-white font-semibold text-4xl">
         Welcome, {session.data?.user?.name}
       </h1>

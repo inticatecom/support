@@ -2,40 +2,15 @@
 // Resources
 import { cn } from "@/lib/utility";
 
+// Hooks
+import { useCallback, useRef, useState } from "react";
+
 // Components
 import Link from "next/link";
+import TextAreaAutosize from "react-textarea-autosize";
 
 // Definitions
-import { Class, Children } from "@/lib/definitions";
-import type { UseFormRegisterReturn } from "react-hook-form";
-type ButtonProps = {
-  type?: "submit" | "button";
-  scheme?: "primary" | "secondary";
-  onClick?: (e: React.MouseEvent<HTMLButtonElement>) => void;
-  loading?: boolean;
-  disabled?: boolean;
-} & Class &
-  Children;
-type InputProps = {
-  label?: string;
-  placeholder?: string;
-  withAsterix?: boolean;
-  type?: "text" | "password";
-  hint?: React.ReactNode;
-  rightSide?: React.ReactNode;
-  disabled?: boolean;
-  error?: string;
-  register?: UseFormRegisterReturn;
-  ref?: React.RefObject<HTMLInputElement | null>;
-} & Class;
-type TextLinkProps = {
-  children: string;
-  href: string;
-} & Class;
-interface SelectProps extends Class {
-  name?: string;
-  list: { id: string; name: string }[];
-}
+import * as Types from "@/lib/definitions";
 
 // Icons
 import { CgSpinner } from "react-icons/cg";
@@ -43,7 +18,6 @@ import {
   MdOutlineKeyboardArrowDown,
   MdOutlineKeyboardArrowUp,
 } from "react-icons/md";
-import { useCallback, useRef, useState } from "react";
 
 /**
  * A base button component.
@@ -56,7 +30,7 @@ export function Button({
   onClick,
   loading,
   disabled,
-}: ButtonProps) {
+}: Types.ButtonProps) {
   return (
     <button
       className={cn(
@@ -93,7 +67,7 @@ export function Button({
 /**
  * A link without a background, just plain text.
  */
-export function TextLink(props: TextLinkProps) {
+export function TextLink(props: Types.TextLinkProps) {
   return (
     <Link
       href={props.href}
@@ -109,7 +83,7 @@ export function TextLink(props: TextLinkProps) {
 /**
  * An input user's can enter text into.
  */
-export function Input(props: InputProps) {
+export function Input(props: Types.InputProps) {
   return (
     <label className={cn("flex flex-col gap-1", props.className)}>
       <div className="flex justify-between items-center w-full">
@@ -144,7 +118,48 @@ export function Input(props: InputProps) {
   );
 }
 
-export function Select({ list, name, className }: SelectProps) {
+/**
+ * An expanded version of the input element.
+ */
+export function TextArea(props: Types.TextAreaProps) {
+  return (
+    <label className={cn("flex flex-col gap-1", props.className)}>
+      <div className="flex justify-between items-center w-full">
+        {props.label && (
+          <p className="text-white/70">
+            {props.label}
+            {props.withAsterix && <span className="text-red-400"> *</span>}
+          </p>
+        )}
+        {props.hint}
+      </div>
+      <div className="flex flex-col gap-[1px]">
+        <div
+          className={cn(
+            "flex justify-between items-center gap-1 text-white bg-[#151515] border-1 border-white/10 px-3 py-2 rounded-md focus-within:border-white",
+            props.disabled && "bg-[#070707] text-white/50",
+            props.error && "border-red-400 focus-within:border-red-500"
+          )}>
+          <TextAreaAutosize
+            placeholder={props.placeholder}
+            disabled={props.disabled}
+            className="outline-none flex-grow-1 resize-none disabled:cursor-not-allowed"
+            ref={props.ref}
+            minRows={1}
+            maxRows={3}
+            {...props.register}
+          />
+        </div>
+        {props.error && <p className="text-red-400 text-sm">{props.error}</p>}
+      </div>
+    </label>
+  );
+}
+
+/**
+ * A dropdown menu users can select options from.
+ */
+export function Select({ list, name, className }: Types.SelectProps) {
   // States
   const [visible, setVisible] = useState<boolean>(false);
   const [value, setValue] = useState<string | undefined>(list[0].id);
@@ -210,6 +225,9 @@ export function Select({ list, name, className }: SelectProps) {
   );
 }
 
+/**
+ * A tip that appears when hovering over the provided element.
+ */
 export function Tooltip({ children }: { children: React.ReactNode }) {
   return (
     <div className="relative contents">

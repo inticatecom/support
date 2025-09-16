@@ -21,7 +21,7 @@ interface BubbleProps {
 
 export default function Inbox() {
   return (
-    <Page>
+    <Page title="Inbox">
       <div className="flex gap-8 w-full h-full">
         <div className="flex flex-col gap-2 w-1/4 max-h-full">
           <Input placeholder="Search here ..." />
@@ -74,7 +74,7 @@ export default function Inbox() {
     return (
       <p
         className={cn(
-          "max-w-3/4 text-wrapped w-fit rounded-lg px-3 py-2",
+          "max-w-3/4 text-wrapped w-fit rounded-lg px-3 py-2 text-lg",
           props.mode === "secondary" ? "bg-blue-500/15 self-end" : "bg-white/15"
         )}>
         {props.message}
