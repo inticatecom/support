@@ -15,6 +15,7 @@ const createOrg = z.object({
 export async function GET() {
   // Fetch the current session and validate it.
   const session = await auth();
+  console.log(session);
   if (!session || !session.user || !session.user.id)
     return new Response("Unauthorized.", { status: 401 });
 

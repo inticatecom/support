@@ -32,6 +32,23 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     signIn: "/auth/login",
     signOut: "/",
   },
+  callbacks: {
+    jwt: ({ token, user }) => {
+      return {
+        ...token,
+        ...(user && { id: user.id }),
+      };
+    },
+    session: ({ session, token }) => {
+      return {
+        ...session,
+        user: {
+          ...session.user,
+          id: String(token.id),
+        },
+      };
+    },
+  },
   providers: [
     Credentials({
       credentials: {
