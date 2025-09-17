@@ -1,5 +1,9 @@
 // Resources
+import { NextApiResponse } from "next";
 import { UseFormRegisterReturn } from "react-hook-form";
+
+/** The result or response of an API request. */
+export type Result<T> = Promise<NextApiResponse<T> | Response>;
 
 /** Represents a base class name attribute to a React component. */
 export interface Class {

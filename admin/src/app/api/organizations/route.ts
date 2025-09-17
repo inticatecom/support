@@ -1,34 +1,57 @@
 // Resources
 import { auth } from "@/auth";
-import * as z from "zod";
-import { prisma } from "@/lib/utility";
+import z from "zod";
+import { prisma, omit } from "@/lib/utility";
+
+// Definitions
+import { type Organization } from "@/generated/prisma";
+import { type Result } from "@/lib/definitions";
+
+// Definitions
+export type OrganizationsResponse = Omit<
+  Organization,
+  "employees" | "userBase" | "useCase"
+>;
 
 // Schemas
-const createOrg = z.object({
-  name: z.string().min(3).max(20),
-  summary: z.string().min(3).max(50),
+export const createOrg = z.object({
+  name: z
+    .string("You must provide the name of the organization.")
+    .min(3, "The name must be at least 3 characters.")
+    .max(20),
+  summary: z
+    .string("You must provide a summary.")
+    .min(3, "The summary must be at least 3 characters.")
+    .max(50, "The summary must be under 50 characters."),
+  useCase: z
+    .string()
+    .max(100, "The use-case must be under 100 characters.")
+    .optional(),
 });
 
 /**
  * Fetches organizations.
  */
-export async function GET() {
+export async function GET(): Result<OrganizationsResponse[]> {
   // Fetch the current session and validate it.
   const session = await auth();
-  console.log(session);
   if (!session || !session.user || !session.user.id)
     return new Response("Unauthorized.", { status: 401 });
 
   // Return all of the user's organizations.
   return Response.json(
-    await prisma.organization.findMany({ where: { ownerId: session.user.id } })
+    (
+      await prisma.organization.findMany({
+        where: { ownerId: session.user.id },
+      })
+    ).map((org) => omit(org, ["employees", "userBase", "useCase"]))
   );
 }
 
 /**
  * Creates an organization.
  */
-export async function POST(req: Request) {
+export async function POST(req: Request): Result<OrganizationsResponse> {
   // Fetch the current session and validate it.
   const session = await auth();
   if (!session || !session.user || !session.user.id)
@@ -57,5 +80,5 @@ export async function POST(req: Request) {
     },
   });
 
-  return Response.json(newOrg); // Return new organization information.
+  return Response.json(omit(newOrg, ["useCase", "userBase", "employees"])); // Return new organization information.
 }
