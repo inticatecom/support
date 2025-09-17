@@ -2,6 +2,11 @@
 // Resources
 import { cn } from "@/lib/utility";
 import { signOut, useSession } from "next-auth/react";
+import ky from "ky";
+import { OrganizationsResponse } from "@/app/api/organizations/route";
+
+// Hooks
+import { useEffect, useState } from "react";
 
 // Definitions
 import * as Types from "@/lib/definitions";
@@ -106,15 +111,32 @@ export function Callout({
  * The container for a page displayed on the dashboard.
  */
 export function Page(props: Types.PageProps) {
+  // States
+  const [orgs, setOrgs] = useState<{ id: string; name: string }[]>([]);
+
   // Hooks
   const session = useSession();
 
+  // Variables
   const items: { path: string; icon: React.ReactNode; className?: string }[] = [
     {
       path: "/dashboard/inbox",
       icon: <FaInbox />,
     },
   ];
+
+  useEffect(() => {
+    (async () => {
+      setOrgs(
+        (
+          await ky.get<OrganizationsResponse[]>("/api/organizations").json()
+        ).map((org) => ({
+          id: org.name,
+          name: org.name,
+        }))
+      );
+    })();
+  }, []);
 
   return (
     <Card className="w-[85%] h-10/12 relative p-0">
@@ -128,7 +150,8 @@ export function Page(props: Types.PageProps) {
               <Image
                 src="/assets/images/icon.png"
                 alt="Icon Logo"
-                layout="fill"
+                fill
+                sizes="100%"
                 draggable={false}
                 className="aspect-square rounded-lg border-1 border-white/10 hover:border-white/20 transition-colors"
               />
@@ -136,12 +159,7 @@ export function Page(props: Types.PageProps) {
           </div>
 
           <div className="border-b-1 border-white/10 p-2 flex justify-between items-center">
-            <Select
-              list={[
-                { id: "test", name: "Demo Organization" },
-                { id: "test2", name: "Another Organization" },
-              ]}
-            />
+            <Select list={orgs} />
             {props.title && (
               <p className="absolute left-1/2 transform -translate-x-1/2 text-white text-lg">
                 {props.title}
@@ -150,7 +168,6 @@ export function Page(props: Types.PageProps) {
           </div>
 
           <div className="flex flex-col items-center py-3 gap-2 border-r-1 border-white/10">
-            {/* <SideLink icon={<IoLogOutSharp />} /> */}
             {items.map((item, index) => (
               <PageLink key={index} href={item.path} className={item.className}>
                 {item.icon}
@@ -173,7 +190,8 @@ export function Page(props: Types.PageProps) {
                 {session.data?.user?.image ? (
                   <Image
                     src={session.data.user.image}
-                    layout={"fill"}
+                    fill
+                    sizes="100%"
                     draggable={false}
                     alt="Profile Picture"
                   />

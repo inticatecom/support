@@ -163,7 +163,7 @@ export function Select(props: Types.SelectProps) {
   // States
   const [visible, setVisible] = useState<boolean>(false);
   const [value, setValue] = useState<string | undefined>(
-    props.defaultId || props.list[0].id
+    props.defaultId || (props.list[0] ? props.list[0].id : "")
   );
 
   // References
