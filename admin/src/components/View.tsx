@@ -1,7 +1,7 @@
 "use client";
 // Resources
 import { cn } from "@/lib/utility";
-import { signOut } from "next-auth/react";
+import { signOut, useSession } from "next-auth/react";
 
 // Definitions
 import * as Types from "@/lib/definitions";
@@ -12,7 +12,7 @@ import Image from "next/image";
 import { Select } from "./Interaction";
 
 // Icons
-import { MdCreateNewFolder, MdLogout } from "react-icons/md";
+import { MdAccountCircle, MdCreateNewFolder, MdLogout } from "react-icons/md";
 import { CgSpinner } from "react-icons/cg";
 import { FaInbox } from "react-icons/fa6";
 
@@ -106,6 +106,9 @@ export function Callout({
  * The container for a page displayed on the dashboard.
  */
 export function Page(props: Types.PageProps) {
+  // Hooks
+  const session = useSession();
+
   const items: { path: string; icon: React.ReactNode; className?: string }[] = [
     {
       path: "/dashboard/inbox",
@@ -144,7 +147,6 @@ export function Page(props: Types.PageProps) {
                 {props.title}
               </p>
             )}
-            <div className="w-[200px]" />
           </div>
 
           <div className="flex flex-col items-center py-3 gap-2 border-r-1 border-white/10">
@@ -166,6 +168,19 @@ export function Page(props: Types.PageProps) {
                 className="text-red-400 bg-red-400/10 hover:bg-red-400/20 p-2 text-xl rounded-lg cursor-pointer transition-colors">
                 <MdLogout />
               </button>
+
+              <span className="relative bg-white/10 hover:bg-white/20 overflow-hidden w-full aspect-square rounded-xl transition-colors">
+                {session.data?.user?.image ? (
+                  <Image
+                    src={session.data.user.image}
+                    layout={"fill"}
+                    draggable={false}
+                    alt="Profile Picture"
+                  />
+                ) : (
+                  <MdAccountCircle className="absolute p-2" size={"100%"} />
+                )}
+              </span>
             </div>
           </div>
 

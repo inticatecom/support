@@ -2,8 +2,11 @@
 import NextAuth, { CredentialsSignin } from "next-auth";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { prisma } from "./lib/utility";
-import Credentials from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
+
+// Providers
+import GitHub from "next-auth/providers/github";
+import Credentials from "next-auth/providers/credentials";
 
 // Error Codes
 class MissingParams extends CredentialsSignin {
@@ -57,5 +60,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         return user;
       },
     }),
+    GitHub,
   ],
 });

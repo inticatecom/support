@@ -10,7 +10,6 @@ type LoginFormData = z.infer<typeof loginSchema>;
 // Components
 import { Button, Input, TextLink } from "@/components/Interaction";
 import { Card, Separator, Callout } from "@/components/View";
-import Link from "next/link";
 
 // Hooks
 import { useCallback, useState } from "react";
@@ -19,7 +18,6 @@ import { useRouter } from "next/navigation";
 
 // Icons
 import { FaGithub } from "react-icons/fa";
-import { IoMdClose } from "react-icons/io";
 import { IoEyeSharp, IoEyeOff } from "react-icons/io5";
 
 // Variables
@@ -38,6 +36,7 @@ const loginSchema = z.object({
 export default function Login() {
   // States
   const [submitting, setSubmitting] = useState<boolean>(false);
+  const [authenticating, setAuthenticating] = useState<boolean>(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [showPass, setShowPass] = useState<boolean>(false);
 
@@ -96,7 +95,7 @@ export default function Login() {
             label="Email"
             withAsterix
             placeholder="john@doe.com"
-            disabled={submitting}
+            disabled={submitting || authenticating}
             register={register("email")}
             error={errors.email?.message}
           />
@@ -119,19 +118,27 @@ export default function Login() {
                 {showPass ? <IoEyeSharp /> : <IoEyeOff />}
               </button>
             }
-            disabled={submitting}
+            disabled={submitting || authenticating}
             register={register("password")}
             error={errors.password?.message}
           />
-          <Button type="submit" loading={submitting} disabled={submitting}>
+          <Button
+            type="submit"
+            loading={submitting}
+            disabled={submitting || authenticating}>
             Login
           </Button>
           <Separator label="Connections" />
           <Button
             type="button"
             scheme="secondary"
-            disabled={submitting}
-            className="flex justify-center items-center gap-2">
+            disabled={submitting || authenticating}
+            className="flex justify-center items-center gap-2"
+            loading={authenticating}
+            onClick={useCallback(async () => {
+              setAuthenticating(true);
+              await signIn("github");
+            }, [])}>
             <FaGithub className="text-lg" />
             <p>Continue with GitHub</p>
           </Button>
