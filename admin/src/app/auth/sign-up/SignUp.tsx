@@ -4,6 +4,7 @@ import * as z from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { signUpSchema } from "@/app/api/auth/sign-up/route";
 import ky from "ky";
+import { signIn } from "next-auth/react";
 
 // Types
 type SignUpData = z.infer<typeof signUpSchema>;
@@ -11,17 +12,15 @@ type SignUpData = z.infer<typeof signUpSchema>;
 // Hooks
 import { useCallback, useState } from "react";
 import { useForm } from "react-hook-form";
+import { useRouter } from "next/navigation";
 
 // Components
 import { Card, Separator, Callout } from "@/components/View";
 import { TextLink, Input, Button } from "@/components/Interaction";
-import Link from "next/link";
 
 // Icons
 import { FaGithub } from "react-icons/fa";
-import { IoMdClose } from "react-icons/io";
 import { IoEyeSharp, IoEyeOff } from "react-icons/io5";
-import { useRouter } from "next/navigation";
 
 /**
  * Client component to display the sign-up page interface.
@@ -29,6 +28,7 @@ import { useRouter } from "next/navigation";
 export default function SignUp() {
   // States
   const [submitting, setSubmitting] = useState<boolean>(false);
+  const [authenticating, setAuthenticating] = useState<boolean>(false);
   const [showPass, setShowPass] = useState<boolean>(false);
   const [formError, setFormError] = useState<string | null>(null);
 
@@ -83,7 +83,7 @@ export default function SignUp() {
               label="Full Name"
               withAsterix
               placeholder="John Doe"
-              disabled={submitting}
+              disabled={submitting || authenticating}
               register={register("name")}
               error={errors.name?.message}
               className="flex-grow-1"
@@ -92,7 +92,7 @@ export default function SignUp() {
               label="Email"
               withAsterix
               placeholder="john@doe.com"
-              disabled={submitting}
+              disabled={submitting || authenticating}
               register={register("email")}
               error={errors.email?.message}
               className="flex-grow-1"
@@ -115,18 +115,26 @@ export default function SignUp() {
                 </span>
               </button>
             }
-            disabled={submitting}
+            disabled={submitting || authenticating}
             register={register("password")}
             error={errors.password?.message}
           />
-          <Button type="submit" loading={submitting} disabled={submitting}>
+          <Button
+            type="submit"
+            loading={submitting}
+            disabled={submitting || authenticating}>
             Create Account
           </Button>
           <Separator label="Connections" />
           <Button
             type="button"
             scheme="secondary"
-            disabled={submitting}
+            disabled={submitting || authenticating}
+            loading={authenticating}
+            onClick={useCallback(async () => {
+              setAuthenticating(true);
+              await signIn("github");
+            }, [])}
             className="flex justify-center items-center gap-2">
             <FaGithub className="text-lg" />
             <p>Continue with GitHub</p>
