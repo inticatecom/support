@@ -8,9 +8,8 @@ import { type Organization } from "@/generated/prisma";
 import { type Result } from "@/lib/definitions";
 
 // Definitions
-export type OrganizationsResponse = Omit<
-  Organization,
-  "employees" | "userBase" | "useCase"
+export type OrganizationsResponse = Readonly<
+  Omit<Organization, "employees" | "userBase" | "useCase">
 >;
 
 // Schemas
