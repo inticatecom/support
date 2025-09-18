@@ -125,6 +125,9 @@ export function Page(props: Types.PageProps) {
     },
   ];
 
+  /**
+   * Fetch organizations that the user is a member of and insert them into the organization select menu.
+   */
   useEffect(() => {
     (async () => {
       setOrgs(
@@ -159,7 +162,7 @@ export function Page(props: Types.PageProps) {
           </div>
 
           <div className="border-b-1 border-white/10 p-2 flex justify-between items-center">
-            <Select list={orgs} />
+            <Select list={orgs} onChange={(data) => console.log(data)} />
             {props.title && (
               <p className="absolute left-1/2 transform -translate-x-1/2 text-white text-lg">
                 {props.title}

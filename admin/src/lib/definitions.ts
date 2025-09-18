@@ -69,6 +69,7 @@ export type SelectProps = {
   /** The name of the select. */
   name?: string;
   defaultId?: string;
+  onChange?: (value?: string) => void;
   /** The options to be displayed in the select menu. */
   list: { id: string; name: string }[];
 } & Class &

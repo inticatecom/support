@@ -3,7 +3,7 @@
 import { cn } from "@/lib/utility";
 
 // Hooks
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 // Components
 import Link from "next/link";
@@ -159,15 +159,26 @@ export function TextArea(props: Types.TextAreaProps) {
 /**
  * A dropdown menu users can select options from.
  */
-export function Select(props: Types.SelectProps) {
+export function Select({
+  defaultId,
+  list,
+  onChange,
+  className,
+  name,
+  label,
+  withAsterix,
+}: Types.SelectProps) {
   // States
   const [visible, setVisible] = useState<boolean>(false);
-  const [value, setValue] = useState<string | undefined>(
-    props.defaultId || (props.list[0] ? props.list[0].id : "")
-  );
+  const [value, setValue] = useState<string | undefined>(undefined);
+  const [focusedIndex, setFocusedIndex] = useState<number>(-1);
 
   // References
-  const input = useRef<HTMLSelectElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+
+  // Variables
+  const selectedItem = list.find((item) => item.id === value);
 
   /**
    * Sets the current value of the input.
@@ -175,57 +186,136 @@ export function Select(props: Types.SelectProps) {
   const set = useCallback((newValue: string) => {
     setValue(newValue);
     setVisible(false);
+    setFocusedIndex(-1);
+    buttonRef.current?.focus();
   }, []);
+
+  /**
+   * Handle keyboard navigation.
+   */
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (!visible) {
+        if (e.key === "Enter" || e.key === " " || e.key === "ArrowDown") {
+          e.preventDefault();
+          setVisible(true);
+          setFocusedIndex(0);
+        }
+        return;
+      }
+
+      switch (e.key) {
+        case "Escape":
+          e.preventDefault();
+          setVisible(false);
+          setFocusedIndex(-1);
+          buttonRef.current?.focus();
+          break;
+        case "ArrowDown":
+          e.preventDefault();
+          setFocusedIndex((prev) => Math.min(prev + 1, list.length - 1));
+          break;
+        case "ArrowUp":
+          e.preventDefault();
+          setFocusedIndex((prev) => Math.max(prev - 1, 0));
+          break;
+        case "Enter":
+          e.preventDefault();
+          if (focusedIndex >= 0 && focusedIndex < list.length) {
+            set(list[focusedIndex].id);
+          }
+          break;
+      }
+    },
+    [visible, focusedIndex, list, set]
+  );
+
+  // Initialize value when list changes.
+  useEffect(() => {
+    if (!value && list.length > 0) {
+      const initialValue = defaultId || list[0].id;
+      setValue(initialValue);
+    }
+  }, [list, defaultId, value]);
+
+  // Invoke the 'onChange' listener when the value is changed.
+  useEffect(() => {
+    if (onChange && value !== undefined) {
+      onChange(value);
+    }
+  }, [value, onChange]);
+
+  // Close the dropdown when clicking outside of the view.
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        containerRef.current &&
+        !containerRef.current.contains(event.target as Node)
+      ) {
+        setVisible(false);
+        setFocusedIndex(-1);
+      }
+    };
+
+    if (visible) {
+      document.addEventListener("mousedown", handleClickOutside);
+      return () =>
+        document.removeEventListener("mousedown", handleClickOutside);
+    }
+  }, [visible]);
 
   return (
     <div
-      className={cn(
-        "w-fit h-fit flex flex-col gap-1 relative",
-        props.className
-      )}>
-      <label className="flex flex-col justify-center gap-1 w-full text-white cursor-pointer">
-        {props.label && (
-          <p className="text-white/70">
-            {props.label}
-            {props.withAsterix && <span className="text-red-400"> *</span>}
-          </p>
+      ref={containerRef}
+      className={cn("w-fit h-fit flex flex-col gap-1 relative", className)}>
+      {label && (
+        <p className="text-white/70">
+          {label}
+          {withAsterix && <span className="text-red-400"> *</span>}
+        </p>
+      )}
+
+      <button
+        ref={buttonRef}
+        type="button"
+        name={name}
+        onClick={useCallback(() => setVisible(!visible), [visible])}
+        onKeyDown={handleKeyDown}
+        className={cn(
+          "flex justify-between items-center gap-2 border-1 bg-[#151515] border-white/10 px-3 py-2 rounded-md text-white text-left",
+          "focus:border-white focus:outline-none",
+          visible && "border-white"
         )}
-        <div className="flex justify-between gap-1 border-1 bg-[#151515] border-white/10 px-3 py-2 rounded-md focus-within:border-white">
-          <select
-            name={props.name}
-            ref={input}
-            onFocus={useCallback(() => setVisible(true), [])}
-            onBlur={useCallback(() => setVisible(false), [])}
-            className="appearance-none cursor-pointer pointer-events-none"
-            onChange={(e) => set(e.target.value)}
-            value={value}>
-            {props.list.map((item, index) => (
-              <option key={index} value={item.id}>
-                {item.name}
-              </option>
-            ))}
-          </select>
-          <button
-            onClick={useCallback(() => input.current?.focus(), [])}
-            className="text-white/30 text-xl cursor-pointer">
-            {!visible ? (
-              <MdOutlineKeyboardArrowDown />
-            ) : (
-              <MdOutlineKeyboardArrowUp />
-            )}
-          </button>
-        </div>
-      </label>
+        aria-expanded={visible}
+        aria-haspopup="listbox">
+        <span className="truncate">
+          {selectedItem?.name || "Select an option..."}
+        </span>
+        <span className="text-white/30 text-xl flex-shrink-0">
+          {visible ? (
+            <MdOutlineKeyboardArrowUp />
+          ) : (
+            <MdOutlineKeyboardArrowDown />
+          )}
+        </span>
+      </button>
+
       {visible && (
-        <div className="absolute top-[110%] left-0 flex flex-col gap-1 w-full border-1 border-white/10 bg-[#151515] text-white rounded-md p-1 z-1">
-          {props.list.map((item, index) => (
+        <div
+          className="absolute top-[110%] left-0 flex flex-col gap-1 w-full border-1 border-white/10 bg-[#151515] text-white rounded-md p-1 z-10 shadow-lg"
+          role="listbox">
+          {list.map((item, index) => (
             <button
-              key={index}
-              onMouseDown={() => set(item.id)}
+              key={item.id}
+              type="button"
+              onClick={() => set(item.id)}
               className={cn(
-                "w-full cursor-pointer hover:bg-white/10 rounded-sm px-2 py-[7px] text-start",
-                item.id === value && "bg-white/10"
-              )}>
+                "w-full cursor-pointer hover:bg-white/10 rounded-sm px-2 py-2 text-left",
+                item.id === value && "bg-white/10",
+                index === focusedIndex && "bg-white/20"
+              )}
+              role="option"
+              aria-selected={item.id === value}>
               {item.name}
             </button>
           ))}

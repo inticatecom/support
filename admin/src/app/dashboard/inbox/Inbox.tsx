@@ -63,7 +63,7 @@ export default function Inbox() {
     return (
       <button className="flex flex-col justify-center items-start bg-[#101010] rounded-lg border-1 border-white/10 p-3 hover:bg-[#141414] cursor-pointer transition-colors">
         <div className="w-full flex justify-between">
-          <h3 className="text-white font-semibold">{props.from}</h3>
+          <h3 className="text-white font-semibold text-start">{props.from}</h3>
           <p className="text-[13px] text-white/50 text-end">
             {moment(props.time).fromNow()}
           </p>
