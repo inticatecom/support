@@ -20,21 +20,19 @@ import {
 } from "react-icons/md";
 
 /**
- * A base button component.
+ * The actual styled component behind button components.
  */
-export function Button({
-  children,
-  type,
-  className,
+function ButtonContent({
   scheme,
-  onClick,
   loading,
   disabled,
-}: Types.ButtonProps) {
+  className,
+  children,
+}: Types.ButtonContentProps) {
   return (
-    <button
+    <div
       className={cn(
-        "flex text-black justify-center items-center bg-gray-200 px-2 py-[6px] rounded-md font-semibold hover:bg-gray-300 cursor-pointer disabled:cursor-not-allowed transition-colors",
+        "flex text-black justify-center items-center bg-gray-200 px-2 py-[6px] rounded-md font-semibold hover:bg-gray-300 cursor-pointer in-disabled:cursor-not-allowed transition-colors",
         scheme === "secondary" &&
           "bg-[#151515] border-1 border-white/10 text-white hover:bg-[#181818]",
         loading &&
@@ -46,10 +44,7 @@ export function Button({
             ? "bg-[#070707] hover:bg-[#070707] text-white/50"
             : "bg-gray-300 hover:bg-gray-300 text-black/50"),
         className
-      )}
-      type={type}
-      disabled={loading || disabled}
-      onClick={onClick}>
+      )}>
       {!loading ? (
         children
       ) : (
@@ -60,7 +55,37 @@ export function Button({
           )}
         />
       )}
+    </div>
+  );
+}
+
+/**
+ * A base button component.
+ */
+export function Button(props: Types.ButtonProps) {
+  return (
+    <button
+      className="contents"
+      type={props.type}
+      disabled={props.loading || props.disabled}
+      onClick={props.onClick}>
+      <ButtonContent {...props}>{props.children}</ButtonContent>
     </button>
+  );
+}
+
+/**
+ * The same styling as a button, but for links.
+ */
+export function LinkButton(props: Types.TextButtonProps) {
+  return (
+    <Link
+      href={props.href}
+      target={props.target || "_self"}
+      draggable={false}
+      className="contents">
+      <ButtonContent {...props}>{props.children}</ButtonContent>
+    </Link>
   );
 }
 

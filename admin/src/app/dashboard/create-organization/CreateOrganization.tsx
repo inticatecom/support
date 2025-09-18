@@ -18,6 +18,7 @@ import {
   TextLink,
   TextArea,
   Select,
+  LinkButton,
   Button,
 } from "@/components/Interaction";
 
@@ -134,13 +135,13 @@ export default function CreateOrganization() {
         </div>
         <Separator />
         <div className="flex gap-2 w-full">
-          <Button
-            type="button"
+          <LinkButton
             scheme="secondary"
             className="w-1/2"
-            disabled={creating}>
+            disabled={creating}
+            href="/">
             Go Back
-          </Button>
+          </LinkButton>
           <Button className="w-1/2" loading={creating}>
             Create Organization
           </Button>

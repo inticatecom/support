@@ -17,20 +17,25 @@ export interface Children {
   children: React.ReactNode;
 }
 
-/** Properties applied to the button component. */
-export type ButtonProps = {
-  /** The type of button. */
-  type?: "submit" | "button";
-  /** The color scheme to use. */
+export type ButtonContentProps = {
   scheme?: "primary" | "secondary";
-  /** An event that triggers when clicking the button. */
-  onClick?: (e: React.MouseEvent<HTMLButtonElement>) => void;
-  /** Whether or not the button is in it's loading state. */
-  loading?: boolean;
-  /** Whether or not the button is disabled. */
   disabled?: boolean;
+  loading?: boolean;
 } & Class &
   Children;
+
+/** Properties applied to the button component. */
+export interface ButtonProps extends ButtonContentProps {
+  /** The type of button. */
+  type?: "submit" | "button";
+  /** An event that triggers when clicking the button. */
+  onClick?: (e: React.MouseEvent<HTMLButtonElement>) => void;
+}
+
+export interface TextButtonProps extends ButtonContentProps {
+  href: string;
+  target?: "_blank" | "_self";
+}
 
 /** Properties applied to the input component. */
 export type InputProps = {

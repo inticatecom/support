@@ -67,7 +67,7 @@ export async function POST(req: Request): Result<OrganizationsResponse> {
   });
   if (exists)
     return new Response(
-      `An organization with the name ${exists.name} already exists.`,
+      `An organization with the name '${exists.name}' already exists.`,
       { status: 500 }
     );
 
