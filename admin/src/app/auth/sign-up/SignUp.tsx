@@ -30,7 +30,6 @@ export default function SignUp() {
   const [submitting, setSubmitting] = useState<boolean>(false);
   const [authenticating, setAuthenticating] = useState<boolean>(false);
   const [showPass, setShowPass] = useState<boolean>(false);
-  const [formError, setFormError] = useState<string | null>(null);
 
   // Hooks
   const {
@@ -38,6 +37,8 @@ export default function SignUp() {
     handleSubmit,
     formState: { errors },
     resetField,
+    setError,
+    clearErrors,
   } = useForm<SignUpData>({ resolver: zodResolver(signUpSchema) });
   const router = useRouter();
 
@@ -47,7 +48,7 @@ export default function SignUp() {
   const onSubmit = useCallback(
     async (data: SignUpData) => {
       setSubmitting(true);
-      setFormError(null);
+      clearErrors("root");
 
       try {
         const response = await ky
@@ -57,12 +58,14 @@ export default function SignUp() {
         router.push("/dashboard");
       } catch (e) {
         resetField("password");
-        setFormError(await (e as { response: Response }).response.text());
+        setError("root", {
+          message: await (e as { response: Response }).response.text(),
+        });
       } finally {
         setSubmitting(false);
       }
     },
-    [resetField, router]
+    [resetField, router, setError, clearErrors]
   );
 
   return (
@@ -77,7 +80,7 @@ export default function SignUp() {
               Create an account with us to access the dashboard.
             </p>
           </div>
-          {formError && <Callout type="error">{formError}</Callout>}
+          {errors.root && <Callout type="error">{errors.root.message}</Callout>}
           <div className="flex justify-center gap-3">
             <Input
               label="Full Name"
@@ -132,9 +135,10 @@ export default function SignUp() {
             disabled={submitting || authenticating}
             loading={authenticating}
             onClick={useCallback(async () => {
+              clearErrors("root");
               setAuthenticating(true);
               await signIn("github");
-            }, [])}
+            }, [clearErrors])}
             className="flex justify-center items-center gap-2">
             <FaGithub className="text-lg" />
             <p>Continue with GitHub</p>

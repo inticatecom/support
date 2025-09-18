@@ -10,16 +10,13 @@ import Credentials from "next-auth/providers/credentials";
 
 // Error Codes
 class MissingParams extends CredentialsSignin {
-  code = "missing_params";
+  code = "Missing required parameters.";
 }
-class AccountNotFound extends CredentialsSignin {
-  code = "account_not_found";
+class InvalidCredentials extends CredentialsSignin {
+  code = "The provided credentials were invalid.";
 }
 class AccountUsesOAuth extends CredentialsSignin {
-  code = "account_uses_oauth";
-}
-class InvalidPassword extends CredentialsSignin {
-  code = "invalid_password";
+  code = "The email provided is already connected using OAuth.";
 }
 
 /**
@@ -65,14 +62,14 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           },
         });
 
-        if (!user) throw new AccountNotFound();
+        if (!user) throw new InvalidCredentials();
 
         if (!user.password) throw new AccountUsesOAuth();
         const validPass = await bcrypt.compare(
           String(credentials.password),
           user.password
         );
-        if (!validPass) throw new InvalidPassword();
+        if (!validPass) throw new InvalidCredentials();
 
         return user;
       },

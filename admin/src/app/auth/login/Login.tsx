@@ -37,7 +37,6 @@ export default function Login() {
   // States
   const [submitting, setSubmitting] = useState<boolean>(false);
   const [authenticating, setAuthenticating] = useState<boolean>(false);
-  const [formError, setFormError] = useState<string | null>(null);
   const [showPass, setShowPass] = useState<boolean>(false);
 
   // Hooks
@@ -46,6 +45,8 @@ export default function Login() {
     handleSubmit,
     formState: { errors },
     resetField,
+    setError,
+    clearErrors,
   } = useForm<LoginFormData>({ resolver: zodResolver(loginSchema) });
   const router = useRouter();
 
@@ -55,7 +56,7 @@ export default function Login() {
   const onSubmit = useCallback(
     async (data: LoginFormData) => {
       setSubmitting(true);
-      setFormError(null);
+      clearErrors("root");
 
       try {
         const result = await signIn("credentials", {
@@ -67,17 +68,19 @@ export default function Login() {
         if (!result?.error && result?.ok) {
           router.push("/dashboard");
         } else {
-          setFormError(result.code || "Internal server error.");
+          setError("root", {
+            message: result.code || "Internal server error.",
+          });
           resetField("password");
         }
       } catch {
-        setFormError("Internal server error.");
+        setError("root", { message: "Internal server error." });
         resetField("password");
       } finally {
         setSubmitting(false);
       }
     },
-    [router, resetField]
+    [router, resetField, clearErrors, setError]
   );
 
   return (
@@ -90,7 +93,7 @@ export default function Login() {
               Login to your account to access the dashboard.
             </p>
           </div>
-          {formError && <Callout type="error">{formError}</Callout>}
+          {errors.root && <Callout type="error">{errors.root.message}</Callout>}
           <Input
             label="Email"
             withAsterix
@@ -136,9 +139,10 @@ export default function Login() {
             className="flex justify-center items-center gap-2"
             loading={authenticating}
             onClick={useCallback(async () => {
+              clearErrors("root");
               setAuthenticating(true);
               await signIn("github");
-            }, [])}>
+            }, [clearErrors])}>
             <FaGithub className="text-lg" />
             <p>Continue with GitHub</p>
           </Button>
