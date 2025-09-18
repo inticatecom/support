@@ -17,9 +17,13 @@ export interface Children {
   children: React.ReactNode;
 }
 
+/** Properties applied tot he button content component. */
 export type ButtonContentProps = {
+  /** The color scheme to use for the button. */
   scheme?: "primary" | "secondary";
+  /** Whether or not the button is disabled. */
   disabled?: boolean;
+  /** Whether or not the button is currently in it's loading state. */
   loading?: boolean;
 } & Class &
   Children;
@@ -32,8 +36,11 @@ export interface ButtonProps extends ButtonContentProps {
   onClick?: (e: React.MouseEvent<HTMLButtonElement>) => void;
 }
 
+/** Properties applied to the text button component. */
 export interface TextButtonProps extends ButtonContentProps {
+  /** The link to navigate to upon clicking the button. */
   href: string;
+  /** The target method for navigating to the link. */
   target?: "_blank" | "_self";
 }
 

@@ -307,7 +307,7 @@ export function Select({
         onClick={useCallback(() => setVisible(!visible), [visible])}
         onKeyDown={handleKeyDown}
         className={cn(
-          "flex justify-between items-center gap-2 border-1 bg-[#151515] border-white/10 px-3 py-2 rounded-md text-white text-left",
+          "flex justify-between items-center gap-2 border-1 bg-[#151515] border-white/10 px-3 py-2 rounded-md text-white text-left cursor-pointer",
           "focus:border-white focus:outline-none",
           visible && "border-white"
         )}
