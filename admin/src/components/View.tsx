@@ -43,7 +43,9 @@ export function Card({ children, className }: Types.CardProps) {
  */
 export function Separator({ label, className }: Types.SeparatorProps) {
   function Spacer({ className }: Types.Class) {
-    return <span className={cn("bg-white/10 w-full h-[1px]", className)} />;
+    return (
+      <span className={cn("bg-white/10 flex-grow-1 h-[1px]", className)} />
+    );
   }
 
   return !label ? (
