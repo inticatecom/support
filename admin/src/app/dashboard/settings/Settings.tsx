@@ -1,3 +1,4 @@
+"use client";
 // Definitions
 import { Children } from "@/lib/definitions";
 interface SettingCardProps extends Children {
@@ -7,18 +8,33 @@ interface SettingCardProps extends Children {
   onSave?: () => void | Promise<void>;
 }
 
+// Hooks
+import { useCallback, useRef } from "react";
+
 // Components
 import { Card, Page, Separator } from "@/components/View";
-import { Button, Input } from "@/components/Interaction";
+import { Button, Input, TextArea } from "@/components/Interaction";
 
 // Icons
 import { FaSave } from "react-icons/fa";
 import { IoMdRefresh } from "react-icons/io";
+import { FaCopy } from "react-icons/fa6";
 
 /**
  * The client-side settings view.
  */
 export default function Settings() {
+  // References
+  const copyKeyRef = useRef<HTMLInputElement>(null);
+
+  /**
+   * Copies the provided value to the client's clipboard.
+   */
+  const copy = useCallback(
+    async (content: string) => await navigator.clipboard.writeText(content),
+    []
+  );
+
   // Variables
   const settings: { title: string; content: SettingCardProps[] }[] = [
     {
@@ -27,15 +43,38 @@ export default function Settings() {
         {
           title: "Organization Name",
           description:
-            "The main name for your organization. This name is displayed to your team member's and on the live chat widget.",
+            "The main name for your organization. This name is displayed to your team members and on the live chat widget.",
           children: <Input placeholder="Acme Inc." />,
+          showBtn: <FaSave />,
+        },
+        {
+          title: "Organization Summary",
+          description:
+            "The summary/description of your organization. Mainly used internally to help members identify the organization easier.",
+          children: (
+            <TextArea placeholder="This is my organization's summary ..." />
+          ),
           showBtn: <FaSave />,
         },
         {
           title: "API Key",
           description:
             "Regenerate your organization's API key. Please keep in mind that this will invalidate the old token so you will have to re-enter your API key's manually.",
-          children: <Input placeholder="ABCD-1234-5678" disabled />,
+          children: (
+            <Input
+              placeholder="ABCD-1234-5678"
+              disabled
+              defaultValue="ABCD-1234-5678"
+              ref={copyKeyRef}
+              rightSide={
+                <button
+                  className="cursor-pointer"
+                  onClick={() => copy(copyKeyRef.current?.value || "")}>
+                  <FaCopy />
+                </button>
+              }
+            />
+          ),
           showBtn: <IoMdRefresh />,
         },
         {

@@ -52,6 +52,7 @@ export type InputProps = {
   placeholder?: string;
   /** Whether or not to show an asterix above the input indicating that the element is required. */
   withAsterix?: boolean;
+  defaultValue?: string;
   /** The type of input. */
   type?: "text" | "password" | "number";
   /** A hint to display. */

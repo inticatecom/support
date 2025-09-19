@@ -131,6 +131,7 @@ export function Input(props: Types.InputProps) {
             placeholder={props.placeholder}
             type={props.type}
             disabled={props.disabled}
+            defaultValue={props.defaultValue}
             className="outline-none flex-grow-1 disabled:cursor-not-allowed"
             ref={props.ref}
             {...props.register}
