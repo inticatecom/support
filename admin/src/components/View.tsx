@@ -20,6 +20,8 @@ import { Select } from "./Interaction";
 import { MdAccountCircle, MdCreateNewFolder, MdLogout } from "react-icons/md";
 import { CgSpinner } from "react-icons/cg";
 import { FaInbox } from "react-icons/fa6";
+import { IoMdSettings } from "react-icons/io";
+import { usePathname } from "next/navigation";
 
 /**
  * A base card component, used for holding content.
@@ -116,12 +118,17 @@ export function Page(props: Types.PageProps) {
 
   // Hooks
   const session = useSession();
+  const path = usePathname();
 
   // Variables
   const items: { path: string; icon: React.ReactNode; className?: string }[] = [
     {
       path: "/dashboard/inbox",
       icon: <FaInbox />,
+    },
+    {
+      path: "/dashboard/settings",
+      icon: <IoMdSettings />,
     },
   ];
 
@@ -224,6 +231,7 @@ export function Page(props: Types.PageProps) {
         href={props.href}
         className={cn(
           "text-white bg-white/10 hover:bg-white/20 p-2 text-xl rounded-lg transition-colors",
+          path === props.href && "bg-white/20",
           props.className
         )}>
         {props.children}
