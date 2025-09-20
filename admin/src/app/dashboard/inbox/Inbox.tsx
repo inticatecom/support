@@ -59,6 +59,9 @@ export default function Inbox() {
     </Page>
   );
 
+  /**
+   * A button that when selected switches to that channel/specific message from the user.
+   */
   function MessageBox(props: MessageBoxProps) {
     return (
       <button className="flex flex-col justify-center items-start bg-[#101010] rounded-lg border-1 border-white/10 p-3 hover:bg-[#141414] cursor-pointer transition-colors">
@@ -79,6 +82,9 @@ export default function Inbox() {
     );
   }
 
+  /**
+   * A chat bubble displaying the message the user sent.
+   */
   function Bubble(props: BubbleProps) {
     return (
       <p

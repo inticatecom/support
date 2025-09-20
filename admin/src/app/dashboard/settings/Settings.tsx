@@ -121,28 +121,20 @@ export default function Settings() {
 
   return (
     <Page title="Settings">
-      <div className="flex flex-col w-full h-full">
-        <div className="flex flex-col gap-1">
-          <h1 className="text-white font-semibold text-4xl">
-            Organization Settings
-          </h1>
-          <p className="text-white/70 text-lg">
-            Make changes to the entire organization. The changes are visible to
-            the entire organization and user-base.
-          </p>
-        </div>
-        <div className="flex flex-col mt-5 gap-2 max-h-full overflow-auto">
-          {settings.map((category, index) => (
-            <div key={index} className="flex flex-col gap-3">
-              <Separator label={category.title} />
-              <div className="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-3">
-                {category.content.map((setting, index) => (
-                  <SettingCard key={index} {...setting} />
-                ))}
-              </div>
+      <Page.Heading description="Make changes to the entire organization. The changes are visible to the entire organization and user-base.">
+        Organization Settings
+      </Page.Heading>
+      <div className="flex flex-col mt-5 gap-2 max-h-full overflow-auto">
+        {settings.map((category, index) => (
+          <div key={index} className="flex flex-col gap-3">
+            <Separator label={category.title} />
+            <div className="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-3">
+              {category.content.map((setting, index) => (
+                <SettingCard key={index} {...setting} />
+              ))}
             </div>
-          ))}
-        </div>
+          </div>
+        ))}
       </div>
     </Page>
   );

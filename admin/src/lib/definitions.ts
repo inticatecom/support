@@ -119,5 +119,10 @@ export type PageProps = {
 } & Class &
   Children;
 
+export type PageHeadingProps = {
+  children: string;
+  description: string;
+} & Class;
+
 /** Properties applied to the page link component. */
 export type PageLinkProps = Class & Children & Pick<TextLinkProps, "href">;

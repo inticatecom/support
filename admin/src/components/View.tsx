@@ -3,7 +3,6 @@
 import { cn } from "@/lib/utility";
 import { signOut, useSession } from "next-auth/react";
 import ky from "ky";
-import { OrganizationsResponse } from "@/app/api/organizations/route";
 
 // Hooks
 import { usePathname } from "next/navigation";
@@ -12,6 +11,7 @@ import { useOrganization } from "@/hooks/useOrganization";
 
 // Definitions
 import * as Types from "@/lib/definitions";
+import { OrganizationsResponse } from "@/app/api/organizations/route";
 
 // Components
 import Link from "next/link";
@@ -118,7 +118,6 @@ export function Callout({
 export function Page(props: Types.PageProps) {
   // Hooks
   const session = useSession();
-  const path = usePathname();
   const { orgId, setOrgId, isLoading: orgLoading } = useOrganization();
   const { data: orgs, isLoading } = useQuery({
     queryKey: ["organizations"],
@@ -180,17 +179,20 @@ export function Page(props: Types.PageProps) {
 
           <div className="flex flex-col items-center py-3 gap-2 border-r-1 border-white/10">
             {items.map((item, index) => (
-              <PageLink key={index} href={item.path} className={item.className}>
+              <Page.Link
+                key={index}
+                href={item.path}
+                className={item.className}>
                 {item.icon}
-              </PageLink>
+              </Page.Link>
             ))}
 
             <div className="mt-auto flex flex-col gap-2">
-              <PageLink
+              <Page.Link
                 href="/create-organization"
                 className="mt-auto bg-blue-300/10 hover:bg-blue-300/20 text-blue-300">
                 <MdCreateNewFolder />
-              </PageLink>
+              </Page.Link>
               <button
                 onClick={async () => await signOut()}
                 className="text-red-400 bg-red-400/10 hover:bg-red-400/20 p-2 text-xl rounded-lg cursor-pointer transition-colors">
@@ -222,21 +224,36 @@ export function Page(props: Types.PageProps) {
       )}
     </Card>
   );
-
-  /**
-   * An item displayed in the side bar of the page.
-   */
-  function PageLink(props: Types.PageLinkProps) {
-    return (
-      <Link
-        href={props.href}
-        className={cn(
-          "text-white bg-white/10 hover:bg-white/20 p-2 text-xl rounded-lg transition-colors",
-          path === props.href && "bg-white/20",
-          props.className
-        )}>
-        {props.children}
-      </Link>
-    );
-  }
 }
+
+/**
+ * The heading of a page. Includes a main title and description.
+ */
+Page.Heading = function PageHeading(props: Types.PageHeadingProps) {
+  return (
+    <div className="flex flex-col gap-1">
+      <h1 className="text-white font-semibold text-4xl">{props.children}</h1>
+      <p className="text-white/70 text-lg">{props.description}</p>
+    </div>
+  );
+};
+
+/**
+ * An item displayed in the side bar of the page.
+ */
+Page.Link = function PageLink(props: Types.PageLinkProps) {
+  // Hooks
+  const path = usePathname();
+
+  return (
+    <Link
+      href={props.href}
+      className={cn(
+        "text-white bg-white/10 hover:bg-white/20 p-2 text-xl rounded-lg transition-colors",
+        path === props.href && "bg-white/20",
+        props.className
+      )}>
+      {props.children}
+    </Link>
+  );
+};

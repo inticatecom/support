@@ -16,10 +16,10 @@ export default function Dashboard() {
 
   return (
     <Page title="Dashboard" loading={session.status === "loading"}>
-      <h1 className="text-white font-semibold text-4xl">
-        Welcome, {session.data?.user?.name}
-      </h1>
-      <p>{JSON.stringify(org)}</p>
+      <Page.Heading description="Welcome. This is your personal dashboard for the currently selected organization.">
+        {`Welcome, ${session.data?.user?.name}`}
+      </Page.Heading>
+      <p className="text-sm mt-5">{JSON.stringify(org)}</p>
     </Page>
   );
 }
