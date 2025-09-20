@@ -139,7 +139,7 @@ export default function CreateOrganization() {
             scheme="secondary"
             className="w-1/2"
             disabled={creating}
-            href="/">
+            href="/dashboard">
             Go Back
           </LinkButton>
           <Button className="w-1/2" loading={creating}>

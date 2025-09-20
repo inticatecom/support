@@ -19,7 +19,9 @@ export default function Dashboard() {
       <Page.Heading description="Welcome. This is your personal dashboard for the currently selected organization.">
         {`Welcome, ${session.data?.user?.name}`}
       </Page.Heading>
-      <p className="text-sm mt-5">{JSON.stringify(org)}</p>
+      <pre className="text-sm mt-5">
+        <code>{JSON.stringify(org)}</code>
+      </pre>
     </Page>
   );
 }

@@ -19,7 +19,7 @@ async function hasPerm(
   session: Session | null,
   ctx: RouteContext<"/api/organizations/[id]">,
   perm?: "agent" | "owner"
-): Promise<Organization | Response> {
+): Promise<(Omit<Organization, "agents"> & { agents: string[] }) | Response> {
   if (!session || !session.user)
     return new Response("Unauthorized.", { status: 401 }); // Make sure user is authorized.
   const { id } = await ctx.params; // Fetch the organization identifier from the route parameters.
@@ -49,7 +49,10 @@ async function hasPerm(
       return new Response("Unauthorized.", { status: 401 });
   }
 
-  return organization; // Return organization information upon successful validation.
+  return {
+    ...omit(organization, ["agents"]),
+    ...{ agents: organization.agents.map((agent) => agent.id) },
+  }; // Return organization information upon successful validation.
 }
 
 /**
