@@ -183,7 +183,7 @@ export function Page(props: Types.PageProps) {
 
             <div className="mt-auto flex flex-col gap-2">
               <PageLink
-                href="/dashboard/create-organization"
+                href="/create-organization"
                 className="mt-auto bg-blue-300/10 hover:bg-blue-300/20 text-blue-300">
                 <MdCreateNewFolder />
               </PageLink>
