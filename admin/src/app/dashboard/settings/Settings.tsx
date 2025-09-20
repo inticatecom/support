@@ -9,7 +9,7 @@ interface SettingCardProps extends Children {
 }
 
 // Hooks
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useRef } from "react";
 import { useOrganization } from "@/hooks/useOrganization";
 
 // Components
@@ -104,6 +104,15 @@ export default function Settings() {
           description:
             "The heading to display at the top of the live chat widget. Usually a welcome message or response time indicator.",
           children: <Input placeholder="Welcome. How can we help?" />,
+          showBtn: <FaSave />,
+        },
+        {
+          title: "Greeting Message",
+          description:
+            "The message to send to the user when the first connect to the chat. Usually a message asking what the user needs help.",
+          children: (
+            <TextArea placeholder="Hey, there! Thanks for contacting us, how may we assist you?" />
+          ),
           showBtn: <FaSave />,
         },
       ],

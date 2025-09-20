@@ -22,7 +22,7 @@ import { Select } from "./Interaction";
 import { MdAccountCircle, MdCreateNewFolder, MdLogout } from "react-icons/md";
 import { CgSpinner } from "react-icons/cg";
 import { FaInbox } from "react-icons/fa6";
-import { IoMdSettings } from "react-icons/io";
+import { IoMdSettings, IoMdMailOpen } from "react-icons/io";
 
 /**
  * A base card component, used for holding content.
@@ -134,6 +134,10 @@ export function Page(props: Types.PageProps) {
     {
       path: "/dashboard/inbox",
       icon: <FaInbox />,
+    },
+    {
+      path: "/dashboard/invite",
+      icon: <IoMdMailOpen />,
     },
     {
       path: "/dashboard/settings",

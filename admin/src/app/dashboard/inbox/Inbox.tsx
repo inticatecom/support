@@ -26,7 +26,7 @@ export default function Inbox() {
   return (
     <Page title="Inbox">
       <div className="flex gap-8 w-full h-full">
-        <div className="flex flex-col gap-2 w-1/4 max-h-full">
+        <div className="flex flex-col gap-2 w-full sm:w-1/2 md:w-1/3 lg:w-1/4 max-h-full">
           <Input placeholder="Search here ..." />
           <div className="flex flex-col w-full gap-2 flex-grow-1 overflow-y-auto">
             {Array.from({ length: 30 }).map((_, index) => (
@@ -40,7 +40,7 @@ export default function Inbox() {
             ))}
           </div>
         </div>
-        <div className="h-full w-full flex flex-col">
+        <div className="h-full flex-grow-1 flex flex-col">
           <div className="flex flex-col gap-2 flex-grow-1 max-h-full overflow-y-auto">
             {Array.from({ length: 30 }).map((_, index) => (
               <Bubble
@@ -70,7 +70,7 @@ export default function Inbox() {
         </div>
         <p
           className={cn(
-            "text-sm text-white/70",
+            "text-sm text-white/70 text-start",
             props.newMessages && "text-white font-semibold"
           )}>
           {props.summary}
