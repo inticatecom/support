@@ -14,7 +14,7 @@ export interface Class {
 /** Represents children of a component. */
 export interface Children {
   /** The component's children. */
-  children: React.ReactNode;
+  children: Readonly<React.ReactNode>;
 }
 
 /** Properties applied tot he button content component. */

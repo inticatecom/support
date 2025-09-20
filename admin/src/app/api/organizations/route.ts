@@ -9,7 +9,7 @@ import { type Result } from "@/lib/definitions";
 
 // Definitions
 export type OrganizationsResponse = Readonly<
-  Omit<Organization, "employees" | "userBase" | "useCase">
+  Omit<Organization, "employees" | "userBase" | "useCase" | "apiKey">
 >;
 
 // Schemas
@@ -43,7 +43,7 @@ export async function GET(): Result<OrganizationsResponse[]> {
       await prisma.organization.findMany({
         where: { ownerId: session.user.id },
       })
-    ).map((org) => omit(org, ["employees", "userBase", "useCase"]))
+    ).map((org) => omit(org, ["employees", "userBase", "useCase", "apiKey"]))
   );
 }
 
@@ -79,5 +79,7 @@ export async function POST(req: Request): Result<OrganizationsResponse> {
     },
   });
 
-  return Response.json(omit(newOrg, ["useCase", "userBase", "employees"])); // Return new organization information.
+  return Response.json(
+    omit(newOrg, ["useCase", "userBase", "employees", "apiKey"])
+  ); // Return new organization information.
 }

@@ -3,11 +3,12 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
 // Components
-import { SessionProvider } from "next-auth/react";
 import { Grid } from "@/components/View";
+import Providers from "./providers";
 
-// Types
+// Definitions
 import type { Metadata, Viewport } from "next";
+import { Children } from "@/lib/definitions";
 
 // Variables
 const geistSans = Geist({
@@ -41,18 +42,17 @@ export const viewport: Viewport = {
   themeColor: "#121212",
 };
 
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+/**
+ * The root layout for the entire applications. Renders providers and the main view.
+ */
+export default function RootLayout({ children }: Children) {
   return (
     <html lang="en">
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-        <SessionProvider>
+        <Providers>
           <Grid className="flex justify-center items-center">{children}</Grid>
-        </SessionProvider>
+        </Providers>
       </body>
     </html>
   );

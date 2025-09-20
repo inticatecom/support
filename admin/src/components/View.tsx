@@ -6,7 +6,8 @@ import ky from "ky";
 import { OrganizationsResponse } from "@/app/api/organizations/route";
 
 // Hooks
-import { useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
+import { useQuery } from "@tanstack/react-query";
 
 // Definitions
 import * as Types from "@/lib/definitions";
@@ -21,7 +22,6 @@ import { MdAccountCircle, MdCreateNewFolder, MdLogout } from "react-icons/md";
 import { CgSpinner } from "react-icons/cg";
 import { FaInbox } from "react-icons/fa6";
 import { IoMdSettings } from "react-icons/io";
-import { usePathname } from "next/navigation";
 
 /**
  * A base card component, used for holding content.
@@ -115,12 +115,17 @@ export function Callout({
  * The container for a page displayed on the dashboard.
  */
 export function Page(props: Types.PageProps) {
-  // States
-  const [orgs, setOrgs] = useState<{ id: string; name: string }[]>([]);
-
   // Hooks
   const session = useSession();
   const path = usePathname();
+  const { data: orgs, isLoading } = useQuery({
+    queryKey: ["organizations"],
+    queryFn: async () => {
+      return (
+        await ky.get<OrganizationsResponse[]>("/api/organizations").json()
+      ).map((org) => ({ id: org.id, name: org.name }));
+    },
+  });
 
   // Variables
   const items: { path: string; icon: React.ReactNode; className?: string }[] = [
@@ -134,25 +139,9 @@ export function Page(props: Types.PageProps) {
     },
   ];
 
-  /**
-   * Fetch organizations that the user is a member of and insert them into the organization select menu.
-   */
-  useEffect(() => {
-    (async () => {
-      setOrgs(
-        (
-          await ky.get<OrganizationsResponse[]>("/api/organizations").json()
-        ).map((org) => ({
-          id: org.name,
-          name: org.name,
-        }))
-      );
-    })();
-  }, []);
-
   return (
     <Card className="w-[85%] h-10/12 relative p-0">
-      {!props.loading ? (
+      {!isLoading && !props.loading ? (
         <div className="grid grid-cols-[60px_1fr] grid-rows-[60px_1fr] h-full">
           <div className="flex flex-col items-center gap-2 p-2 border-r-1 border-b-1 border-white/10">
             <Link
@@ -171,7 +160,7 @@ export function Page(props: Types.PageProps) {
           </div>
 
           <div className="border-b-1 border-white/10 p-2 flex justify-between items-center">
-            <Select list={orgs} onChange={(data) => console.log(data)} />
+            <Select list={orgs || []} />
             {props.title && (
               <p className="absolute left-1/2 transform -translate-x-1/2 text-white text-lg">
                 {props.title}
