@@ -5,6 +5,7 @@ import { Children } from "@/lib/definitions";
 // Components
 import { SessionProvider } from "next-auth/react";
 import { QueryClientProvider, QueryClient } from "@tanstack/react-query";
+import { OrganizationProvider } from "@/context/OrganizationContext";
 
 // Variables
 const queryClient = new QueryClient();
@@ -15,7 +16,11 @@ const queryClient = new QueryClient();
 export default function Providers({ children }: Children) {
   return (
     <SessionProvider>
-      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+      <OrganizationProvider>
+        <QueryClientProvider client={queryClient}>
+          {children}
+        </QueryClientProvider>
+      </OrganizationProvider>
     </SessionProvider>
   );
 }

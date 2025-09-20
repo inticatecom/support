@@ -9,7 +9,8 @@ interface SettingCardProps extends Children {
 }
 
 // Hooks
-import { useCallback, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
+import { useOrganization } from "@/hooks/useOrganization";
 
 // Components
 import { Card, Page, Separator } from "@/components/View";
@@ -24,6 +25,9 @@ import { FaCopy } from "react-icons/fa6";
  * The client-side settings view.
  */
 export default function Settings() {
+  // Hooks
+  const { org } = useOrganization();
+
   // References
   const copyKeyRef = useRef<HTMLInputElement>(null);
 
@@ -64,7 +68,7 @@ export default function Settings() {
             <Input
               placeholder="ABCD-1234-5678"
               disabled
-              defaultValue="ABCD-1234-5678"
+              defaultValue={org?.id}
               ref={copyKeyRef}
               rightSide={
                 <button

@@ -8,6 +8,7 @@ import { OrganizationsResponse } from "@/app/api/organizations/route";
 // Hooks
 import { usePathname } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
+import { useOrganization } from "@/hooks/useOrganization";
 
 // Definitions
 import * as Types from "@/lib/definitions";
@@ -118,6 +119,7 @@ export function Page(props: Types.PageProps) {
   // Hooks
   const session = useSession();
   const path = usePathname();
+  const { orgId, setOrgId, isLoading: orgLoading } = useOrganization();
   const { data: orgs, isLoading } = useQuery({
     queryKey: ["organizations"],
     queryFn: async () => {
@@ -141,7 +143,7 @@ export function Page(props: Types.PageProps) {
 
   return (
     <Card className="w-[85%] h-10/12 relative p-0">
-      {!isLoading && !props.loading ? (
+      {!orgLoading && !isLoading && !props.loading ? (
         <div className="grid grid-cols-[60px_1fr] grid-rows-[60px_1fr] h-full">
           <div className="flex flex-col items-center gap-2 p-2 border-r-1 border-b-1 border-white/10">
             <Link
@@ -160,7 +162,11 @@ export function Page(props: Types.PageProps) {
           </div>
 
           <div className="border-b-1 border-white/10 p-2 flex justify-between items-center">
-            <Select list={orgs || []} />
+            <Select
+              list={orgs || []}
+              onChange={(id) => setOrgId(String(id))}
+              {...(orgId && { defaultId: orgId })}
+            />
             {props.title && (
               <p className="absolute left-1/2 transform -translate-x-1/2 text-white text-lg">
                 {props.title}
