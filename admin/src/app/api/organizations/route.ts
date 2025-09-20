@@ -41,7 +41,12 @@ export async function GET(): Result<OrganizationsResponse[]> {
   return Response.json(
     (
       await prisma.organization.findMany({
-        where: { ownerId: session.user.id },
+        where: {
+          OR: [
+            { ownerId: session.user.id },
+            { agents: { some: { id: session.user.id } } },
+          ],
+        },
       })
     ).map((org) => omit(org, ["employees", "userBase", "useCase", "apiKey"]))
   );

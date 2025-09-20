@@ -48,7 +48,7 @@ export default function Settings() {
           title: "Organization Name",
           description:
             "The main name for your organization. This name is displayed to your team members and on the live chat widget.",
-          children: <Input placeholder="Acme Inc." />,
+          children: <Input placeholder="Acme Inc." defaultValue={org?.name} />,
           showBtn: <FaSave />,
         },
         {
@@ -56,7 +56,10 @@ export default function Settings() {
           description:
             "The summary/description of your organization. Mainly used internally to help members identify the organization easier.",
           children: (
-            <TextArea placeholder="This is my organization's summary ..." />
+            <TextArea
+              placeholder="This is my organization's summary ..."
+              defaultValue={org?.summary}
+            />
           ),
           showBtn: <FaSave />,
         },

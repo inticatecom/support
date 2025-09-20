@@ -59,7 +59,7 @@ export async function GET(
   _: Request,
   ctx: RouteContext<"/api/organizations/[id]">
 ): Result<OrganizationsResponse> {
-  const data = await hasPerm(await auth(), ctx, "owner"); // Fetch and validate the user's permissions.
+  const data = await hasPerm(await auth(), ctx, "agent"); // Fetch and validate the user's permissions.
   if (!("name" in data)) return data; // Return an error to the user if the validation fails.
 
   return Response.json(

@@ -171,6 +171,7 @@ export function TextArea(props: Types.TextAreaProps) {
             disabled={props.disabled}
             className="outline-none flex-grow-1 resize-none disabled:cursor-not-allowed"
             ref={props.ref}
+            defaultValue={props.defaultValue}
             minRows={props.minRows || 1}
             maxRows={props.maxRows || 3}
             {...props.register}
