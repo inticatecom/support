@@ -3,10 +3,16 @@ import { auth } from "@/auth";
 import { prisma, omit } from "@/lib/utility";
 
 // Definitions
-import { OrganizationsResponse } from "../route";
 import { Result } from "@/lib/definitions";
 import { Session } from "next-auth";
 import { Organization } from "@/generated/prisma";
+export interface OrganizationResponse
+  extends Omit<
+    Organization,
+    "agents" | "useCase" | "employees" | "userBase" | "apiKey"
+  > {
+  agents: string[];
+}
 
 /**
  * Compares the user's permissions with the organization we are trying to access.
@@ -19,7 +25,13 @@ async function hasPerm(
   session: Session | null,
   ctx: RouteContext<"/api/organizations/[id]">,
   perm?: "agent" | "owner"
-): Promise<(Omit<Organization, "agents"> & { agents: string[] }) | Response> {
+): Promise<
+  | (Omit<
+      Organization,
+      "agents" | "userBase" | "employees" | "useCase" | "apiKey"
+    > & { agents: string[] })
+  | Response
+> {
   if (!session || !session.user)
     return new Response("Unauthorized.", { status: 401 }); // Make sure user is authorized.
   const { id } = await ctx.params; // Fetch the organization identifier from the route parameters.
@@ -50,7 +62,13 @@ async function hasPerm(
   }
 
   return {
-    ...omit(organization, ["agents"]),
+    ...omit(organization, [
+      "agents",
+      "userBase",
+      "employees",
+      "useCase",
+      "apiKey",
+    ]),
     ...{ agents: organization.agents.map((agent) => agent.id) },
   }; // Return organization information upon successful validation.
 }
@@ -61,13 +79,11 @@ async function hasPerm(
 export async function GET(
   _: Request,
   ctx: RouteContext<"/api/organizations/[id]">
-): Result<OrganizationsResponse> {
+): Result<OrganizationResponse> {
   const data = await hasPerm(await auth(), ctx, "agent"); // Fetch and validate the user's permissions.
   if (!("name" in data)) return data; // Return an error to the user if the validation fails.
 
-  return Response.json(
-    omit(data, ["userBase", "employees", "useCase", "apiKey"])
-  );
+  return Response.json(data);
 }
 
 /**

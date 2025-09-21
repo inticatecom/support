@@ -2,7 +2,7 @@
 import ky from "ky";
 
 // Definitions
-import { OrganizationsResponse } from "../app/api/organizations/route";
+import { OrganizationResponse } from "../app/api/organizations/[id]/route";
 
 // Hooks
 import { useQuery } from "@tanstack/react-query";
@@ -15,18 +15,18 @@ import { useOrgContext } from "@/context/OrganizationContext";
 export function useOrganization(defaultId?: string) {
   // Hooks
   const { orgId, setOrgId } = useOrgContext();
-
-  // Hooks
   const { data, error, isLoading, refetch } = useQuery({
     queryKey: ["organization", orgId],
     queryFn: async () => {
       return await ky
-        .get<OrganizationsResponse>(`/api/organizations/${orgId}`)
+        .get<OrganizationResponse>(`/api/organizations/${orgId}`)
         .json();
     },
     staleTime: 5 * 60 * 1000,
     enabled: !!orgId,
   });
+
+  if (defaultId) setOrgId(defaultId); // Set organization identifier if a default one is provided.
 
   // Export Data & Methods
   return {
