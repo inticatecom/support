@@ -149,10 +149,12 @@ export default function Settings() {
           <h3 className="font-semibold text-xl">{props.title}</h3>
           <p className="text-white/70">{props.description}</p>
         </div>
-        <div className="flex justify-center items-center gap-2">
-          <div className="flex-grow-1">{props.children}</div>
+        <div className="flex justify-center items-start gap-2">
+          <div className="flex-1">{props.children}</div>
           {props.showBtn && (
-            <Button className="aspect-square text-xl">{props.showBtn}</Button>
+            <Button className="aspect-square text-xl min-h-10 max-h-16 h-10 flex-shrink-0">
+              {props.showBtn}
+            </Button>
           )}
         </div>
       </Card>

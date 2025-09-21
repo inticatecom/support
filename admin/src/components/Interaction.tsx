@@ -105,12 +105,24 @@ export function TextLink(props: Types.TextLinkProps) {
   );
 }
 
+function InputContainer({
+  children,
+  className,
+  label,
+}: Types.Children & Types.Class & { label?: string }) {
+  return label ? (
+    <label className={cn("flex flex-col gap-1", className)}>{children}</label>
+  ) : (
+    children
+  );
+}
+
 /**
  * An input user's can enter text into.
  */
 export function Input(props: Types.InputProps) {
   return (
-    <label className={cn("flex flex-col gap-1", props.className)}>
+    <InputContainer {...props}>
       <div className="flex justify-between items-center w-full">
         {props.label && (
           <p className="text-white/70">
@@ -140,7 +152,7 @@ export function Input(props: Types.InputProps) {
         </div>
         {props.error && <p className="text-red-400 text-sm">{props.error}</p>}
       </div>
-    </label>
+    </InputContainer>
   );
 }
 
@@ -149,7 +161,7 @@ export function Input(props: Types.InputProps) {
  */
 export function TextArea(props: Types.TextAreaProps) {
   return (
-    <label className={cn("flex flex-col gap-1", props.className)}>
+    <InputContainer {...props}>
       <div className="flex justify-between items-center w-full">
         {props.label && (
           <p className="text-white/70">
@@ -179,7 +191,7 @@ export function TextArea(props: Types.TextAreaProps) {
         </div>
         {props.error && <p className="text-red-400 text-sm">{props.error}</p>}
       </div>
-    </label>
+    </InputContainer>
   );
 }
 
