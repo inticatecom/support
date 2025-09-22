@@ -1,4 +1,7 @@
 "use client";
+// Resources
+import ky from "ky";
+
 // Definitions
 import { Children } from "@/lib/definitions";
 interface SettingCardProps extends Children {
@@ -11,6 +14,7 @@ interface SettingCardProps extends Children {
 // Hooks
 import { useCallback, useRef } from "react";
 import { useOrganization } from "@/hooks/useOrganization";
+import { useQuery } from "@tanstack/react-query";
 
 // Components
 import { Card, Page, Separator } from "@/components/View";
@@ -27,6 +31,13 @@ import { FaCopy } from "react-icons/fa6";
 export default function Settings() {
   // Hooks
   const { org } = useOrganization();
+  const { data: apiKey } = useQuery({
+    queryKey: ["apiKey"],
+    queryFn: async () => {
+      return await ky.get<string>(`/api/organizations/${org?.id}/key`).text();
+    },
+    enabled: !!org?.id,
+  });
 
   // References
   const copyKeyRef = useRef<HTMLInputElement>(null);
@@ -69,9 +80,8 @@ export default function Settings() {
             "Regenerate your organization's API key. Please keep in mind that this will invalidate the old token so you will have to re-enter your API key's manually.",
           children: (
             <Input
-              placeholder="ABCD-1234-5678"
               disabled
-              defaultValue={org?.id}
+              defaultValue={apiKey || ""}
               ref={copyKeyRef}
               rightSide={
                 <button
@@ -130,7 +140,7 @@ export default function Settings() {
             <Separator label={category.title} />
             <div className="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-3">
               {category.content.map((setting, index) => (
-                <SettingCard key={index} {...setting} />
+                <Setting key={index} {...setting} />
               ))}
             </div>
           </div>
@@ -142,7 +152,7 @@ export default function Settings() {
   /**
    * Represents a setting option.
    */
-  function SettingCard(props: SettingCardProps) {
+  function Setting(props: SettingCardProps) {
     return (
       <Card className="flex flex-col justify-between gap-2 w-full p-4">
         <div className="flex flex-col gap-x-11">
