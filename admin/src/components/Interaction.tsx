@@ -280,7 +280,6 @@ export function Select({
   // Invoke the 'onChange' listener when the value is changed.
   useEffect(() => {
     if (onChange && value !== undefined) {
-      console.log("changed");
       onChange(value);
     }
   }, [value, onChange]);

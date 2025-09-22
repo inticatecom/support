@@ -8,7 +8,7 @@ interface SettingCardProps extends Children {
   title: string;
   description: string;
   showBtn?: React.ReactNode;
-  onSave?: () => void | Promise<void>;
+  onAction?: () => void | Promise<void>;
 }
 
 // Hooks
@@ -31,7 +31,7 @@ import { FaCopy } from "react-icons/fa6";
 export default function Settings() {
   // Hooks
   const { org } = useOrganization();
-  const { data: apiKey } = useQuery({
+  const { data: apiKey, refetch } = useQuery({
     queryKey: ["apiKey"],
     queryFn: async () => {
       return await ky.get<string>(`/api/organizations/${org?.id}/key`).text();
@@ -49,6 +49,14 @@ export default function Settings() {
     async (content: string) => await navigator.clipboard.writeText(content),
     []
   );
+
+  /**
+   * Regenerate the API key for the current organization.
+   */
+  const regenKey = useCallback(async () => {
+    (await ky.patch<string>(`/api/organizations/${org?.id}/key`)).text();
+    await refetch();
+  }, [org?.id, refetch]);
 
   // Variables
   const settings: { title: string; content: SettingCardProps[] }[] = [
@@ -93,6 +101,9 @@ export default function Settings() {
             />
           ),
           showBtn: <IoMdRefresh />,
+          onAction: async () => {
+            await regenKey();
+          },
         },
         {
           title: "Delete Organization",
@@ -162,7 +173,13 @@ export default function Settings() {
         <div className="flex justify-center items-start gap-2">
           <div className="flex-1">{props.children}</div>
           {props.showBtn && (
-            <Button className="aspect-square text-xl min-h-10 max-h-16 h-10 flex-shrink-0">
+            <Button
+              className="aspect-square text-xl min-h-10 max-h-16 h-10 flex-shrink-0"
+              onClick={() => {
+                if (props.onAction) {
+                  props.onAction();
+                }
+              }}>
               {props.showBtn}
             </Button>
           )}

@@ -23,6 +23,7 @@ import { MdAccountCircle, MdCreateNewFolder, MdLogout } from "react-icons/md";
 import { CgSpinner } from "react-icons/cg";
 import { FaInbox } from "react-icons/fa6";
 import { IoMdSettings, IoMdMailOpen } from "react-icons/io";
+import { useEffect } from "react";
 
 /**
  * A base card component, used for holding content.
